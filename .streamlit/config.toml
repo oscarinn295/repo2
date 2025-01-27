@@ -1,0 +1,10 @@
+[client]
+showSidebarNavigation = false
+[theme]
+base="dark"
+primaryColor="#FF4B4B"
+backgroundColor="#1E1E1E"
+secondaryBackgroundColor="#262626"
+textColor="#FFFFFF"
+[server]
+enableXsrfProtection = false
