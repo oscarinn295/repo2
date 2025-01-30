@@ -1,5 +1,45 @@
+import requests
+import json
 import streamlit as st
 import pandas as pd
+
+# Cargar valores desde secrets.toml
+api = st.secrets["api"]['dfs']
+url=st.secrets['urls']['usuarios']
+idc=st.secrets['ids']['usuarios']
+def load_data(URL):
+    return pd.read_excel(URL)
+
+def load_data1(URL):
+    return pd.read_csv(URL)
+
+def append_data(id: str, datos: list):
+    """
+    Envía datos a Google Sheets usando la API de Google Apps Script.
+    """
+    payload = {
+        "fileId": id,
+        "values": [datos]
+    }
+    response = requests.post(api, data=json.dumps(payload))
+    
+    return response.json()
+
+def save_data(id: str, datos):
+    """
+    Sobrescribe toda la hoja con nuevos datos.
+    """
+    values = datos.values.tolist()
+    values.insert(0, datos.columns.tolist())  # Agrega encabezados
+    
+    payload = {
+        "fileId": id,
+        "values": values,
+        "all": True  # Sobrescribir toda la hoja
+    }
+    response = requests.post(api, data=json.dumps(payload))
+    
+    return response.json()
 
 # Ocultar el botón de Deploy con CSS
 hide_menu_style = """
@@ -18,7 +58,7 @@ def validarUsuario(usuario, clave):
     :return: True si el usuario y clave son válidos, False en caso contrario
     """
     try:
-        dfusuarios = pd.read_csv('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\usuarios.csv')  # Carga el archivo CSV
+        dfusuarios = load_data1(url)  # Carga el archivo CSV
         # Verifica si existe un usuario y clave que coincidan
         if len(dfusuarios[(dfusuarios['usuario'] == usuario) & (dfusuarios['clave'] == clave)]) > 0:
             return True
@@ -35,7 +75,7 @@ def generarMenu(usuario):
     """
     with st.sidebar:
         try:
-            dfusuarios = pd.read_csv('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\usuarios.csv')
+            dfusuarios = load_data1(url)
             dfUsuario = dfusuarios[dfusuarios['usuario'] == usuario]
             nombre = dfUsuario['nombre'].values[0]
 
@@ -58,12 +98,12 @@ def generarMenu(usuario):
 
             # Reportes
             st.subheader("Reportes")
-            st.page_link('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\pages\\repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
-            st.page_link('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\pages\\repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
-            st.page_link('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\pages\\repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
-            st.page_link('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\pages\\repo_pagos_cobranzas.py', label="Reporte Cobranzas", icon=":material/group:")
-            st.page_link('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\pages\\repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
-            st.page_link('C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\pages\\visitas.py', label="Reporte de Visitas", icon=":material/group:")
+            st.page_link('pages\\repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
+            st.page_link('pages\\repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
+            st.page_link('pages\\repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
+            st.page_link('pages\\repo_cobranzas.py', label="Reporte Cobranzas", icon=":material/group:")
+            st.page_link('pages\\repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
+            st.page_link('pages\\visitas.py', label="Reporte de Visitas", icon=":material/group:")
 
             # Botón de cierre de sesión
             if st.button("Salir"):
@@ -90,3 +130,4 @@ def generarLogin():
                     st.rerun()  # Forzar redirección para aplicar cambios de estado
                 else:
                     st.error("Usuario o clave inválidos")
+

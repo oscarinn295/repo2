@@ -1,30 +1,35 @@
-import streamlit as st
 import login
 import pandas as pd
+import streamlit as st
+
 
 # Llamar al módulo de login
 login.generarLogin()
 
-# Ruta al archivo Excel
-FILE_PATH = "C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\ventas_por_vendedor.xlsx"
 
-# Función para cargar los datos
-def load_data():
-    return pd.read_excel(FILE_PATH, engine="openpyxl")
+idc=st.secrets['ids']['repo_ventas']
+url=st.secrets['urls']['repo_ventas']
+def load():
+    return login.load_data(url)
+def new(datos):
+    login.append_data(idc,datos)
+    st.session_state['prestamos']=load()
+def save(df):
+    login.save_data(idc,df)
+    st.session_state['prestamos']=load()
 
-# Función para guardar los datos
-def save_data(dataframe):
-    dataframe.to_excel(FILE_PATH, index=False, engine="openpyxl")
+
+
 
 # Inicializar la base de datos y la página actual
-if "mov" not in st.session_state:
-    st.session_state["mov"] = load_data()
+if "repo_ventas" not in st.session_state:
+    st.session_state["repo_ventas"] = load()
 
 
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):
     st.subheader("Lista de Movimientos")
-    df=load_data()
+    df=st.session_state["repo_ventas"]
     # Mostrar tabla en Streamlit
     if not df.empty:
         st.dataframe(df)

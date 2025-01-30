@@ -2,41 +2,28 @@ import streamlit as st
 import login
 import pandas as pd
 from datetime import date
-# Llamar al módulo de login
+
+idc=st.secrets['ids']['flujo_caja']
+url=st.secrets['urls']['flujo_caja']
+def load():
+    return login.load_data(url)
+def new(datos):
+    login.append_data(idc,datos)
+    st.session_state['prestamos']=load()
+def save(df):
+    login.save_data(idc,df)
+    st.session_state['prestamos']=load()
+
+flujo=load()
+# Inicializar la base de datos y la página actual
+
+
 login.generarLogin()
 
-# Ruta al archivo Excel
-FILE_PATH = "C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\FlujoCaja.xlsx"
-
-# Función para cargar los datos
-def load_data():
-    return pd.read_excel(FILE_PATH, engine="openpyxl")
-
-# Función para guardar los datos
-def save_data(dataframe):
-    dataframe.to_excel(FILE_PATH, index=False, engine="openpyxl")
-    st.session_state['mov']=dataframe
-
-# Inicializar la base de datos y la página actual
-if "mov" not in st.session_state:
-    st.session_state["mov"] = load_data()
 
 st.session_state["page"] = "cobranza"
-
-flujo=load_data()
-def prestamo(data):
-    saldo=flujo['Saldo'].max()
-    #data['fecha']['nombre']['capital']['cantidad']['tipo']['vence dia']['asociado']['tnm']['monto']['obs']
-    nuevo_movimiento = {
-                "Fecha": data['fecha'],
-                "Concepto": f'Plan de{data['cantidad']} cuotas de {data['monto']}',
-                "Ingreso": 0,
-                "Egreso": data['capital'],
-                "Total": ingreso - egreso,
-                "Saldo": saldo+ingreso - egreso,
-            }
-    flujo=pd.concatenate([flujo,nuevo_movimiento])
-    save_data(flujo)
+if 'mov' not in st.session_state:
+    st.session_state['mov']=load()
 
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):
@@ -56,14 +43,14 @@ def display_table(search_query=""):
 def delete_client(index):
     st.session_state["mov"].drop(index=index, inplace=True)
     st.session_state["mov"].reset_index(drop=True, inplace=True)  # Reiniciar índices
-    save_data(st.session_state["mov"])
+    save(st.session_state["mov"])
     st.success("Movimiento eliminado.")
 
 # Función para guardar un nuevo movimiento
 def guardar_movimiento(data):
     df = st.session_state["mov"]
     df = pd.concat([df, pd.DataFrame([data])], ignore_index=True)
-    save_data(df)
+    save(df)
     st.session_state["mov"] = df
 
 # Página de lista de movimientos
@@ -81,7 +68,7 @@ if st.session_state["page"] == "cobranza":
 
     # Botón para reiniciar datos
     if st.button("Reiniciar datos"):
-        st.session_state["mov"] = load_data()
+        st.session_state["mov"] = load()
         st.success("Datos reiniciados.")
 
 # Página de gestión de movimientos

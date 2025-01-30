@@ -1,12 +1,19 @@
 import streamlit as st
 import login
 import pandas as pd
-import os
+
+idc=st.secrets['ids']['parametros']
+url=st.secrets['urls']['parametros']
+def load():
+    return login.load_data1(url)
+def save(df):
+    login.save_data(idc,df)
+    st.session_state['prestamos']=load()
+
+
 login.generarLogin()
 
 
-# Definir ruta del archivo CSV
-FILE_PATH = "parametros.csv"
 
 # Datos iniciales en caso de que el archivo no exista
 DEFAULT_DATA = [
@@ -16,19 +23,9 @@ DEFAULT_DATA = [
     {"Parametro": "Comisión del Monto objetivo (%)", "Valor": 10},
 ]
 
-# Cargar datos desde el archivo o usar datos predeterminados
-def load_data():
-    if os.path.exists(FILE_PATH):
-        return pd.read_csv(FILE_PATH)
-    else:
-        return pd.DataFrame(DEFAULT_DATA)
-
-# Guardar datos en el archivo CSV
-def save_data(dataframe):
-    dataframe.to_csv(FILE_PATH, index=False)
 
 # Cargar o inicializar los datos
-df = load_data()
+df = load()
 
 # Título de la aplicación
 st.title("Parámetros")
@@ -49,7 +46,7 @@ if not df.empty:
         with col3:
             if st.button("Editar", key=f"editar_{idx}"):
                 df.at[idx, "Valor"] = nuevo_valor
-                save_data(df)
+                save(df)
                 st.success(f"Parámetro actualizado: {row['Parametro']}")
                 st.experimental_rerun()
 else:

@@ -1,69 +1,60 @@
-import os
 import pandas as pd
+import requests
+import re
 import streamlit as st
 import login
-
+from datetime import date
 login.generarLogin()
+# ID de la carpeta en Google Drive
+DRIVE_FOLDER_ID = st.secrets['ids']['imagenes']
+UPLOAD_URL = st.secrets['api']['imgs']
 
-# Ruta de los archivos
-FILE_PATH = "C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\cobranzas.xlsx"
-CLIENTS_PATH = "C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\clientes.xlsx"
+# Cargar datos
+idc = st.secrets['ids']['cobranzas']
+url = st.secrets['urls']['cobranzas']
 
-# Cargar clientes
-clientes = pd.read_excel(CLIENTS_PATH, engine="openpyxl")
+def load():
+    return login.load_data(url)
 
-# Función para cargar datos de cobranzas
-def load_data():
-    if os.path.exists(FILE_PATH):
-        return pd.read_excel(FILE_PATH, engine="openpyxl")
-    else:
-        return pd.DataFrame(columns=[
-            "ID", "DNI", "Vendedor/Cobrador", "nombre", "N° Cuota",
-            "monto", "Monto Recalculado (+ Mora)", "pago", "redondeo",
-            "vencimiento", "visita", "estado"
-        ])
+def save(df):
+    login.save_data(idc, df)
+    st.session_state['cobranzas'] = load()
 
-# Función para guardar datos
-def save_data(dataframe):
-    dataframe.to_excel(FILE_PATH, index=False, engine="openpyxl")
-    st.session_state["cobranzas"] = dataframe
+def upload_to_drive(image_path, folder_id):
+    with open(image_path, "rb") as image_file:
+        files = {"image": (image_path, image_file, "image/jpeg")}
+        data = {"folderId": folder_id}
+        response = requests.post(UPLOAD_URL, files=files, data=data)
 
-# Inicializar archivo si no existe
-if "cobranzas" not in st.session_state:
-    st.session_state["cobranzas"] = load_data()
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data.get("url") if response_data.get("status") == "success" else None
+    return None
 
-st.session_state['pages']='cobranza'
-# Función para actualizar datos
+def convert_drive_url(url):
+    clean_url = url.split('?')[0]
+    match = re.search(r'drive\.google\.com/file/d/([a-zA-Z0-9_-]+)', clean_url)
+    
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/uc?export=download&id={file_id}"
+    
+    return url  # Retorna la URL original si no es un enlace válido de Drive
+
+
+
+st.session_state['page'] = 'cobranza'
+if 'cobranzas' not in st.session_state:
+    st.session_state['cobranzas']=load()
+
 def update_data(index, action, value=None):
     df = st.session_state["cobranzas"]
     if action == "estado":
         df.at[index, "estado"] = value
     elif action == "visita":
         df.at[index, "visita"] = value
-    save_data(df)
+    save(df)
 
-# Función para crear cobranzas
-def crear_cobranzas(data):
-    for i in range(1, data["Cant. Cuotas"] + 1):
-        nueva_cobranza = {
-            "ID": st.session_state["cobranzas"]["ID"].max() + 1 if not st.session_state["cobranzas"].empty else 1,
-            "DNI": clientes.loc[clientes["nombre"] == data["nombre"], "dni"].values[0],
-            "Vendedor/Cobrador": st.session_state["usuario"],
-            "nombre": data["nombre"],
-            "N° Cuota": i,
-            "monto": data["monto"],
-            "Monto Recalculado (+ Mora)": data["monto"],
-            "pago": 0,  # Inicialmente no pagado
-            "redondeo": 0,
-            "vencimiento": data["vence dia"],
-            "visita": data["fecha"],
-            "estado": "Pendiente"
-        }
-        nueva_cobranza_df = pd.DataFrame([nueva_cobranza])
-        st.session_state["cobranzas"] = pd.concat([st.session_state["cobranzas"], nueva_cobranza_df], ignore_index=True)
-    save_data(st.session_state["cobranzas"])
-
-# Mostrar tabla interactiva
 def display_table(search_query=""):
     st.subheader("Cobranzas")
     df = st.session_state["cobranzas"]
@@ -73,36 +64,79 @@ def display_table(search_query=""):
 
     if not df.empty:
         for idx, row in df.iterrows():
-            col1, col2, col3 = st.columns([4, 2, 1])
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.write(f"**ID**: {row['ID']} | **Nombre**: {row['nombre']}")
-                st.write(f"**Cuota**: {row['N° Cuota']} | **Monto**: {row['monto']}")
-                st.write(f"**Vencimiento**: {row['vencimiento']} | **Visita**: {row['visita']} | **Estado**: {row['estado']}")
+                st.write(f"**ID**: {row['id']} | **Nombre**: {row['nombre']}")
+                st.write(f"**Cuota**: {row['n_cuota']} | **Monto**: {row['monto']}")
             with col2:
-                option = st.selectbox(
-                    "Acción",
-                    ["Seleccionar...", "Registrar pago", "Reprogramar visita", "No abono"],
-                    key=f"action_{idx}"
-                )
+                option = st.selectbox("Acción", ["Seleccionar...", "Registrar pago", "Reprogramar visita", "No abono"], key=f"action_{idx}")
                 if option == "Registrar pago":
-                    new_state = st.text_input(f"Nuevo estado (ID {row['ID']})", key=f"state_{idx}")
-                    if st.button("Actualizar estado", key=f"update_state_{idx}"):
-                        update_data(idx, "estado", new_state)
-                        st.success("Estado actualizado.")
-                elif option == "Reprogramar visita":
-                    new_visit = st.text_input(f"Nueva visita (ID {row['ID']})", key=f"visit_{idx}")
-                    if st.button("Actualizar visita", key=f"update_visit_{idx}"):
-                        update_data(idx, "visita", new_visit)
-                        st.success("Visita actualizada.")
-                elif option == "No abono":
-                    if st.button("Marcar como No abono", key=f"no_abono_{idx}"):
-                        update_data(idx, "estado", "No abono")
-                        st.success("Estado actualizado a 'No abono'.")
+                    st.session_state['page'] = 'registrar'
+                    st.session_state['dato'] = row.to_dict()
+                    st.session_state['index'] = idx
+                    st.rerun()
+            with col3:
+                if pd.notna(row["comprobante"]):
+                    image_url = convert_drive_url(row["comprobante"])
+                    st.write("Comprobante:")
+                    st.image(image_url, width=100)
+                    st.markdown(f'[Descargar Comprobante]({image_url})', unsafe_allow_html=True)
     else:
         st.warning("No se encontraron resultados.")
 
-# Página principal
 if st.session_state["page"] == "cobranza":
     st.title("Lista de Cobranzas")
     search_query = st.text_input("Buscar")
     display_table(search_query)
+
+if st.session_state['page'] == 'registrar':
+    with st.form("form_registro"):
+        medio_pago = st.selectbox('Seleccione una opción', ['Seleccione una opción', 'efectivo', 'transferencia'])
+        pago_total = st.checkbox(label='Pago Total')
+        monto = st.number_input("Monto", min_value=0.0, step=1000.0, value=st.session_state['dato']['monto'] if pago_total else 0.0)
+        comprobante = ""
+
+        if medio_pago == 'transferencia':
+            uploaded_file = st.file_uploader("Sube una imagen", type=["jpg", "png", "jpeg"])
+            if uploaded_file and st.button('Confirmar subida'):
+                temp_path = f"./{uploaded_file.name}"
+                with open(temp_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+
+                comprobante = upload_to_drive(temp_path, DRIVE_FOLDER_ID)
+                if comprobante:
+                    st.success("Imagen subida correctamente")
+                else:
+                    st.error("Error al subir la imagen")
+
+        registrar = st.form_submit_button("Registrar")
+        volver = st.form_submit_button("Volver")
+
+        if volver:
+            st.session_state["page"] = 'cobranza'
+            st.rerun()
+
+        if registrar:
+            reg = st.session_state['dato']
+            if medio_pago != 'Seleccione una opción' and monto > 0:
+                actualizacion = {
+                    'id': reg['id'],
+                    'dni': reg['dni'],
+                    'vendedor/cobrador': reg['vendedor/cobrador'],
+                    'nombre': reg['nombre'],
+                    'n_cuota': reg['n_cuota'],
+                    'monto': reg['monto'],
+                    'monto_mecalculado_mora': reg['monto_mecalculado_mora'],
+                    'pago': monto,
+                    'redondeo': 0.0,
+                    'vencimiento': reg['vencimiento'],
+                    'visita': reg['visita'],
+                    'estado': 'Abonado',
+                    'comprobante': comprobante
+                }
+                st.session_state['cobranzas'].loc[st.session_state['index']] = pd.Series(actualizacion)
+                save(st.session_state['cobranzas'])
+                st.session_state["page"] = 'cobranza'
+                st.rerun()
+            else:
+                st.warning('Faltan datos')

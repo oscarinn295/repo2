@@ -1,27 +1,24 @@
-import streamlit as st
 import pandas as pd
 import login
+import streamlit as st
+idc=st.secrets['ids']['clientes']
+url=st.secrets['urls']['clientes']
+def load():
+    return login.load_data(url)
+
+def new(datos):
+    login.append_data(idc,datos)
+    st.session_state['prestamos']=load()
+def save(df):
+    login.save_data(idc,df)
+    st.session_state['prestamos']=load()
+
+
 login.generarLogin()
 
-# Ruta al archivo Excel
-FILE_PATH = "C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\clientes.xlsx"
-
-# Función para cargar los datos
-def load_data():
-    df = pd.read_excel(FILE_PATH, engine="openpyxl")
-    return df
-
-# Función para guardar los datos
-def save_data(dataframe):
-    dataframe.to_excel(FILE_PATH, index=False)
-
-# Inicializar la base de datos y la página actual
-if "clientes" not in st.session_state:
-    st.session_state["clientes"] = load_data()
-
-if "page" not in st.session_state:
-    st.session_state["page"] = "lista"  # Página por defecto
-
+st.session_state["page"] = "lista"  # Página por defecto
+if 'clientes' not in st.session_state:
+    st.session_state['clientes']=load() 
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
@@ -41,12 +38,12 @@ def display_table(search_query=""):
                 st.write(f"**Nro**: {row['nro']} - **Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
                 st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
             with col2:
-                if st.button(f"Editar {row['nro']}", key=f"edit_{row['nro']}"):
+                if st.button("Editar", key=f"edit_{row['nro']}"):
                     st.session_state["nro"] = row["nro"]  # Guardar el número del cliente
                     st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
                     st.rerun()
             with col3:
-                if st.button(f"Eliminar {row['nro']}", key=f"delete_{row['nro']}"):
+                if st.button("Eliminar", key=f"delete_{row['nro']}"):
                     delete_client(idx)
                     st.rerun()
     else:
@@ -55,7 +52,7 @@ def display_table(search_query=""):
 # Función para eliminar un cliente
 def delete_client(index):
     st.session_state["clientes"].drop(index=index, inplace=True)
-    save_data(st.session_state["clientes"])
+    save(st.session_state["clientes"])
     st.success("Cliente eliminado.")
 
 # Página de lista de clientes
@@ -72,25 +69,14 @@ if st.session_state["page"] == "lista":
 
     # Botón para reiniciar datos
     if st.button("Reiniciar datos"):
-        st.session_state["clientes"] = load_data()
+        st.session_state["clientes"] = load()
         st.success("Datos reiniciados.")
 
 # Página de gestión de clientes
 elif st.session_state["page"] == "gestionar":
     st.title("Gestión de Cliente")
-    # Aquí agregarías el formulario o lógica para gestionar el cliente
-    # Función para cargar los datos
-    def load_data():
-        df = pd.read_excel(FILE_PATH,engine="openpyxl")
-        return df
-
-    # Función para guardar los datos
-    def save_data(dataframe):
-        dataframe.to_excel(FILE_PATH, index=False)
-
-    # Inicializar el formulario
     if "clientes" not in st.session_state:
-        st.session_state["clientes"] = load_data()
+        st.session_state["clientes"] = load()
 
     def reset_form():
         st.session_state["dni"] = ""
@@ -142,7 +128,7 @@ elif st.session_state["page"] == "gestionar":
             st.session_state["clientes"].loc[idx, ["dni", "nombre", "direccion", "celular", "vendedor"]] = [
                 dni, nombre, direccion, celular, vendedor
             ]
-        save_data(st.session_state["clientes"])
+        save(st.session_state["clientes"])
         st.success("Cliente guardado.")
         reset_form()
 

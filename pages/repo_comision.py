@@ -1,30 +1,25 @@
-import streamlit as st
 import login
+import streamlit as st
 import pandas as pd
 
 # Llamar al módulo de login
 login.generarLogin()
-
-# Ruta al archivo Excel
-FILE_PATH = "C:\\Users\\oscar\\Desktop\\laburo\\cobranzas\\streamlitLogin\\DB\\comisiones.xlsx"
-
-# Función para cargar los datos
-def load_data():
-    return pd.read_excel(FILE_PATH, engine="openpyxl")
-
-# Función para guardar los datos
-def save_data(dataframe):
-    dataframe.to_excel(FILE_PATH, index=False, engine="openpyxl")
-
-# Inicializar la base de datos y la página actual
-if "comisiones" not in st.session_state:
-    st.session_state["comisiones"] = load_data()
-
-
+idc=st.secrets['ids']['repo_comision']
+url=st.secrets['urls']['repo_comision']
+def load():
+    return login.load_data(url)
+def new(datos):
+    login.append_data(idc,datos)
+    st.session_state['prestamos']=load()
+def save(df):
+    login.save_data(idc,df)
+    st.session_state['prestamos']=load()
+if 'comisiones' not in st.session_state:
+    st.session_state['comisiones']=load()
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):
     st.subheader("Lista de Movimientos")
-    df=load_data()
+    df=st.session_state['comisiones']
     # Mostrar tabla en Streamlit
     if not df.empty:
         st.dataframe(df)
