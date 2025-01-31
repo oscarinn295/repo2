@@ -68,6 +68,7 @@ def crear_visitas(data):
                       '']
         login.append_data(st.secrets['ids']['visitas'],nueva_visita)
 def crear_cobranzas(data):
+    cobranzas=login.load_data(st.secrets['urls'['cobranzas']])
     fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
     i=0
     for fecha in fechas:
@@ -113,11 +114,11 @@ import pandas as pd
 login.generarLogin()
 
 from datetime import date
-
-st.session_state["page"] = "prestamo"  # Página por defecto
+if 'page' not in st.session_state:
+    st.session_state["page"] = "main"  # Página por defecto
 if 'prestamo' not in st.session_state:
     st.session_state['prestamo']=load()
-
+st.session_state['pagina_actual'] = 1
 def display_table(search_query=""):
     st.subheader("Préstamos Registrados")
 
@@ -126,19 +127,26 @@ def display_table(search_query=""):
     # Filtrar datos según la consulta de búsqueda
     if search_query:
         df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
+    # Configuración de paginación
+    ITEMS_POR_PAGINA = 10
+    # Paginación
+    total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
+    inicio = (st.session_state['pagina_actual'] - 1) * ITEMS_POR_PAGINA
+    fin = inicio + ITEMS_POR_PAGINA
+    df_paginado = df.iloc[inicio:fin]
 
     if not df.empty:
         updated_rows = []  # Para almacenar cambios de estado temporalmente
-        for index, row in df.iterrows():
-            col1, col2, col3 = st.columns(3)
+        for idx, row in df_paginado.iterrows():
+            col1, col2, col3 = st.columns([4, 2, 1])
             with col1:
                 st.write(
                     f"**Fecha:** {row['fecha']} | **Cliente:** {row['nombre']} | "
                     f"**Capital:** {row['capital']}"
                 )
             with col2:
-                if st.button(f"Editar", key=f"editar_{index}"):
-                    st.session_state["nro"] = index
+                if st.button(f'✏️ Editar', key=f'edit_{idx}'):
+                    st.session_state["nro"] = idx
                     st.session_state["page"] = "gestionar_prestamo"
                     st.rerun()
             with col3:
@@ -148,7 +156,7 @@ def display_table(search_query=""):
                      "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
                     index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
                            "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
-                    key=f"estado_{index}"
+                    key=f"estado_{idx}"
                 )
                 # Agregar cambios si el estado cambió
                 if new_estado != row["estado"]:
@@ -160,9 +168,25 @@ def display_table(search_query=""):
             save(st.session_state["prestamos"])  # Guardar cambios al archivo Excel
     else:
         st.warning("No se encontraron resultados.")
-
-
-
+        # Controles de paginación
+    col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+    with col_pag1:
+        if st.session_state['pagina_actual'] > 1:
+            if st.button("⬅ Anterior"):
+                st.session_state['pagina_actual'] -= 1
+                st.rerun()
+    with col_pag3:
+        if st.session_state['pagina_actual'] < total_paginas:
+            if st.button("Siguiente ➡"):
+                st.session_state['pagina_actual'] += 1
+                st.rerun()
+    # Contador de registros y selector de cantidad por página
+    st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
+    items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
+    if items_seleccionados != ITEMS_POR_PAGINA:
+        ITEMS_POR_PAGINA = items_seleccionados
+        st.session_state['pagina_actual'] = 1
+        st.rerun()
 
 # Función para guardar un nuevo préstamo
 def guardar_prestamo(data):
@@ -172,7 +196,7 @@ def guardar_prestamo(data):
     egreso_caja(data)
 
 # Página de lista de préstamos
-if st.session_state["page"] == "prestamo":
+if st.session_state["page"] == "main":
     st.title("Gestión de Préstamos")
     col1,col2=st.columns(2)
     with col1:
@@ -245,7 +269,7 @@ elif st.session_state["page"] == "gestionar_prestamo":
 
     # Botón para volver a la lista de clientes
     if st.button("Cancelar"):
-        st.session_state["page"] = "lista"  # Regresar a la página de lista
+        st.session_state["page"] = "main"  # Regresar a la página de lista
         st.rerun()  # Forzar la redirección
     # Manejo del evento al enviar el formulario
     if crear:
@@ -273,7 +297,7 @@ elif st.session_state["page"] == "gestionar_prestamo":
                 # Crear un nuevo préstamo
                 guardar_prestamo(nuevo_prestamo)
 
-            st.session_state["page"] = "prestamo"
+            st.session_state["page"] = "main"
             st.rerun()
 
 

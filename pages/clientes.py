@@ -15,10 +15,12 @@ def save(df):
 
 
 login.generarLogin()
-
-st.session_state["page"] = "lista"  # Página por defecto
+if 'page' not in st.session_state:
+    st.session_state['page']='main'
 if 'clientes' not in st.session_state:
     st.session_state['clientes']=load() 
+
+st.session_state['pagina_actual'] = 1
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
@@ -29,16 +31,22 @@ def display_table(search_query=""):
         df = df[
             df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)
         ]
-
+    # Configuración de paginación
+    ITEMS_POR_PAGINA = 10
+    # Paginación
+    total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
+    inicio = (st.session_state['pagina_actual'] - 1) * ITEMS_POR_PAGINA
+    fin = inicio + ITEMS_POR_PAGINA
+    df_paginado = df.iloc[inicio:fin]
     # Crear tabla con botones
     if not df.empty:
-        for idx, row in df.iterrows():
+        for idx, row in df_paginado.iterrows():
             col1, col2, col3 = st.columns([4, 1, 1])  # Distribuir columnas
             with col1:
                 st.write(f"**Nro**: {row['nro']} - **Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
                 st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
             with col2:
-                if st.button("Editar", key=f"edit_{row['nro']}"):
+                if st.button(f'✏️ Editar', key=f'edit_{idx}'):
                     st.session_state["nro"] = row["nro"]  # Guardar el número del cliente
                     st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
                     st.rerun()
@@ -48,15 +56,34 @@ def display_table(search_query=""):
                     st.rerun()
     else:
         st.warning("No se encontraron resultados.")
+    # Controles de paginación
+    col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+    with col_pag1:
+        if st.session_state['pagina_actual'] > 1:
+            if st.button("⬅ Anterior"):
+                st.session_state['pagina_actual'] -= 1
+                st.rerun()
+    with col_pag3:
+        if st.session_state['pagina_actual'] < total_paginas:
+            if st.button("Siguiente ➡"):
+                st.session_state['pagina_actual'] += 1
+                st.rerun()
+    # Contador de registros y selector de cantidad por página
+    st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
+    items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
+    if items_seleccionados != ITEMS_POR_PAGINA:
+        ITEMS_POR_PAGINA = items_seleccionados
+        st.session_state['pagina_actual'] = 1
+        st.rerun()
 
 # Función para eliminar un cliente
 def delete_client(index):
     st.session_state["clientes"].drop(index=index, inplace=True)
     save(st.session_state["clientes"])
-    st.success("Cliente eliminado.")
+    login.historial(st.session_state["clientes"].loc[index],'borrado')
 
 # Página de lista de clientes
-if st.session_state["page"] == "lista":
+if st.session_state["page"] == "main":
     st.title("Gestión de Clientes")
     # Botón para crear un nuevo cliente
     if st.button("Crear Nuevo Cliente"):
@@ -79,6 +106,7 @@ elif st.session_state["page"] == "gestionar":
         st.session_state["clientes"] = load()
 
     def reset_form():
+        st.session_state['nro']=None
         st.session_state["dni"] = ""
         st.session_state["nombre"] = ""
         st.session_state["direccion"] = ""
@@ -114,7 +142,7 @@ elif st.session_state["page"] == "gestionar":
         if st.session_state["nro"] is None:
             # Crear cliente nuevo
             nuevo_cliente = pd.DataFrame([{
-                "nro": len(st.session_state["clientes"]) + 1,
+                "nro":  max(st.session_state['clientes']['nro'])+1,
                 "dni": dni,
                 "nombre": nombre,
                 "direccion": direccion,
@@ -122,19 +150,23 @@ elif st.session_state["page"] == "gestionar":
                 "vendedor": vendedor,
             }])
             st.session_state["clientes"] = pd.concat([st.session_state["clientes"], nuevo_cliente], ignore_index=True)
+            login.historial(nuevo_cliente,'nuevo cliente')
         else:
             # Actualizar cliente existente
-            idx = st.session_state["clientes"]["nro"] == st.session_state["nro"]
+            idx = st.session_state["nro"]
+            login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_viejo')
             st.session_state["clientes"].loc[idx, ["dni", "nombre", "direccion", "celular", "vendedor"]] = [
                 dni, nombre, direccion, celular, vendedor
             ]
+            login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_nuevo')
         save(st.session_state["clientes"])
         st.success("Cliente guardado.")
         reset_form()
+        st.rerun()
 
     # Botón para volver a la lista de clientes
     if st.button("Volver"):
-        st.session_state["page"] = "lista"  # Regresar a la página de lista
+        st.session_state["page"] = "main"  # Regresar a la página de lista
         st.rerun()  # Forzar la redirección
     
 if st.session_state['usuario']=="admin":

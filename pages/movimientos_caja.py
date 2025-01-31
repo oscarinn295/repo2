@@ -21,7 +21,7 @@ flujo=load()
 login.generarLogin()
 
 
-st.session_state["page"] = "cobranza"
+st.session_state["page"] = "main"
 if 'mov' not in st.session_state:
     st.session_state['mov']=load()
 
@@ -54,7 +54,7 @@ def guardar_movimiento(data):
     st.session_state["mov"] = df
 
 # Página de lista de movimientos
-if st.session_state["page"] == "cobranza":
+if st.session_state["page"] == "main":
     st.title("Movimientos de Caja")
 
     # Botón para crear un nuevo movimiento
@@ -86,7 +86,7 @@ elif st.session_state["page"] == "gestionar_movimiento":
         crear = st.form_submit_button("Guardar")
 
     if st.button("Volver"):
-        st.session_state["page"] = "lista"  # Regresar a la página de lista
+        st.session_state["page"] = "main"  # Regresar a la página de lista
         st.rerun()  # Forzar la redirección
 
     # Manejo del evento al enviar el formulario
@@ -110,7 +110,7 @@ elif st.session_state["page"] == "gestionar_movimiento":
 
             guardar_movimiento(nuevo_movimiento)
             st.success("Movimiento guardado con éxito.")
-            st.session_state["page"] = "lista"
+            st.session_state["page"] = "main"
             st.rerun()
 if st.session_state['usuario']=="admin":
     st.title("subir nuevos datos")

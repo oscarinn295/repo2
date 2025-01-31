@@ -28,7 +28,11 @@ DEFAULT_DATA = [
 df = load()
 
 # Título de la aplicación
-st.title("Parámetros")
+col1,col2=st.columns(2)
+with col1:
+    st.title("Parámetros")
+with col2:
+    st.title('Valor')
 
 
 # Mostrar tabla interactiva

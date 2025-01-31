@@ -42,8 +42,8 @@ def convert_drive_url(url):
     return url  # Retorna la URL original si no es un enlace válido de Drive
 
 
-
-st.session_state['page'] = 'cobranza'
+if 'page' not in st.session_state:
+    st.session_state['page'] = 'main'
 if 'cobranzas' not in st.session_state:
     st.session_state['cobranzas']=load()
 
@@ -84,7 +84,7 @@ def display_table(search_query=""):
     else:
         st.warning("No se encontraron resultados.")
 
-if st.session_state["page"] == "cobranza":
+if st.session_state["page"] == "main":
     st.title("Lista de Cobranzas")
     search_query = st.text_input("Buscar")
     display_table(search_query)
@@ -113,7 +113,7 @@ if st.session_state['page'] == 'registrar':
         volver = st.form_submit_button("Volver")
 
         if volver:
-            st.session_state["page"] = 'cobranza'
+            st.session_state["page"] = 'main'
             st.rerun()
 
         if registrar:
@@ -136,7 +136,7 @@ if st.session_state['page'] == 'registrar':
                 }
                 st.session_state['cobranzas'].loc[st.session_state['index']] = pd.Series(actualizacion)
                 save(st.session_state['cobranzas'])
-                st.session_state["page"] = 'cobranza'
+                st.session_state["page"] = 'main'
                 st.rerun()
             else:
                 st.warning('Faltan datos')
