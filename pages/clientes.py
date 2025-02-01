@@ -106,8 +106,8 @@ if st.session_state["page"] == "main":
     # Barra de búsqueda
     search_query = st.text_input("Buscar cliente (por cualquier campo)", key="search_query")
     display_table(search_query)
-    if st.button("Ver todos los datos"):
-        st.dataframe(st.session_state['clientes'])
+    if st.button('Ver todos los datos'):
+        st.dataframe(load())
 
 # Página de gestión de clientes
 elif st.session_state["page"] == "gestionar":

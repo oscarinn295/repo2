@@ -118,6 +118,8 @@ if st.session_state["page"] == "main":
     st.title("Lista de Cobranzas")
     search_query = st.text_input("Buscar")
     display_table(search_query)
+    if st.button('Ver todos los datos'):
+        st.dataframe(load())
 
 if st.session_state['page'] == 'registrar':
     with st.form("form_registro"):
