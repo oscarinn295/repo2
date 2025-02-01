@@ -118,7 +118,8 @@ if 'page' not in st.session_state:
     st.session_state["page"] = "main"  # Página por defecto
 if 'prestamo' not in st.session_state:
     st.session_state['prestamo']=load()
-st.session_state['pagina_actual'] = 1
+if 'pagina_actual' not in st.session_state:
+    st.session_state['pagina_actual'] = 1
 def display_table(search_query=""):
     st.subheader("Préstamos Registrados")
 
@@ -138,29 +139,27 @@ def display_table(search_query=""):
     if not df.empty:
         updated_rows = []  # Para almacenar cambios de estado temporalmente
         for idx, row in df_paginado.iterrows():
-            col1, col2, col3 = st.columns([4, 2, 1])
-            with col1:
-                st.write(
-                    f"**Fecha:** {row['fecha']} | **Cliente:** {row['nombre']} | "
-                    f"**Capital:** {row['capital']}"
-                )
-            with col2:
-                if st.button(f'✏️ Editar', key=f'edit_{idx}'):
-                    st.session_state["nro"] = idx
-                    st.session_state["page"] = "gestionar_prestamo"
-                    st.rerun()
-            with col3:
-                new_estado = st.selectbox(
-                    "Estado*", 
-                    ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
-                     "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
-                    index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
-                           "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
-                    key=f"estado_{idx}"
-                )
-                # Agregar cambios si el estado cambió
-                if new_estado != row["estado"]:
-                    updated_rows.append((index, new_estado))
+            with st.container(border=True):
+                col1, col2, col3 = st.columns([4, 2, 1])
+                with col1:
+                    st.write(f"**Fecha:** {row['fecha']} |**Capital:** {row['capital']}")
+                    st.write(f"**Cliente:** {row['nombre']}")
+                with col2:
+                    new_estado = st.selectbox(
+                        "Estado*", 
+                        ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
+                        "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
+                        index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
+                            "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
+                        key=f"estado_{idx}"
+                    )
+                    # Agregar cambios si el estado cambió
+                    if new_estado != row["estado"]:
+                        updated_rows.append((index, new_estado))
+                    if st.button(f'✏️ Editar', key=f'edit_{idx}'):
+                        st.session_state["nro"] = idx
+                        st.session_state["page"] = "gestionar_prestamo"
+                        st.rerun()
 
         # Actualizar los cambios en el DataFrame
         for index, new_estado in updated_rows:
@@ -168,25 +167,27 @@ def display_table(search_query=""):
             save(st.session_state["prestamos"])  # Guardar cambios al archivo Excel
     else:
         st.warning("No se encontraron resultados.")
-        # Controles de paginación
-    col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-    with col_pag1:
-        if st.session_state['pagina_actual'] > 1:
-            if st.button("⬅ Anterior"):
-                st.session_state['pagina_actual'] -= 1
-                st.rerun()
-    with col_pag3:
-        if st.session_state['pagina_actual'] < total_paginas:
-            if st.button("Siguiente ➡"):
-                st.session_state['pagina_actual'] += 1
-                st.rerun()
+    # Controles de paginación
+    with st.container(border=True):
+        col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+        with col_pag1:
+            if st.session_state['pagina_actual'] > 1:
+                if st.button("⬅ Anterior"):
+                    st.session_state['pagina_actual'] -= 1
+                    st.rerun()
+        with col_pag3:
+            if st.session_state['pagina_actual'] < total_paginas:
+                if st.button("Siguiente ➡"):
+                    st.session_state['pagina_actual'] += 1
+                    st.rerun()
     # Contador de registros y selector de cantidad por página
-    st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
-    items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
-    if items_seleccionados != ITEMS_POR_PAGINA:
-        ITEMS_POR_PAGINA = items_seleccionados
-        st.session_state['pagina_actual'] = 1
-        st.rerun()
+    with st.container(border=True):
+        st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
+        items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
+        if items_seleccionados != ITEMS_POR_PAGINA:
+            ITEMS_POR_PAGINA = items_seleccionados
+            st.session_state['pagina_actual'] = 1
+            st.rerun()
 
 # Función para guardar un nuevo préstamo
 def guardar_prestamo(data):

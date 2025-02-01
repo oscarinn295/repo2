@@ -1,6 +1,8 @@
 import pandas as pd
 import login
 import streamlit as st
+
+
 idc=st.secrets['ids']['clientes']
 url=st.secrets['urls']['clientes']
 def load():
@@ -19,8 +21,9 @@ if 'page' not in st.session_state:
     st.session_state['page']='main'
 if 'clientes' not in st.session_state:
     st.session_state['clientes']=load() 
-
-st.session_state['pagina_actual'] = 1
+if 'pagina_actual' not in st.session_state:
+    st.session_state['pagina_actual'] = 1
+# Función para mostrar la tabla con filtro de búsqueda
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
@@ -41,40 +44,44 @@ def display_table(search_query=""):
     # Crear tabla con botones
     if not df.empty:
         for idx, row in df_paginado.iterrows():
-            col1, col2, col3 = st.columns([4, 1, 1])  # Distribuir columnas
-            with col1:
-                st.write(f"**Nro**: {row['nro']} - **Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
-                st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
-            with col2:
-                if st.button(f'✏️ Editar', key=f'edit_{idx}'):
-                    st.session_state["nro"] = row["nro"]  # Guardar el número del cliente
-                    st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
-                    st.rerun()
-            with col3:
-                if st.button("Eliminar", key=f"delete_{row['nro']}"):
-                    delete_client(idx)
-                    st.rerun()
+            with st.container(border=True):
+                col1, col2, col3 = st.columns([4, 1, 1])  # Distribuir columnas
+                with col1:
+                    st.write(f"**Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
+                    st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
+                with col2:
+                    if st.button(f'✏️ Editar', key=f'edit_{idx}'):
+                        st.session_state["nro"] = row["nro"]  # Guardar el número del cliente
+                        st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
+                        st.rerun()
+                with col3:
+                    if st.button("🗑️Eliminar", key=f"delete_{row['nro']}"):
+                        delete_client(idx)
+                        st.rerun()
     else:
         st.warning("No se encontraron resultados.")
     # Controles de paginación
-    col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-    with col_pag1:
-        if st.session_state['pagina_actual'] > 1:
-            if st.button("⬅ Anterior"):
-                st.session_state['pagina_actual'] -= 1
-                st.rerun()
-    with col_pag3:
-        if st.session_state['pagina_actual'] < total_paginas:
-            if st.button("Siguiente ➡"):
-                st.session_state['pagina_actual'] += 1
-                st.rerun()
+    with st.container(border=True):
+        col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+        with col_pag1:
+            if st.session_state['pagina_actual'] > 1:
+                if st.button("⬅ Anterior"):
+                    st.session_state['pagina_actual'] -= 1
+                    st.rerun()
+        with col_pag3:
+            if st.session_state['pagina_actual'] < total_paginas:
+                if st.button("Siguiente ➡"):
+                    st.session_state['pagina_actual'] += 1
+                    st.rerun()
     # Contador de registros y selector de cantidad por página
-    st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
-    items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
-    if items_seleccionados != ITEMS_POR_PAGINA:
-        ITEMS_POR_PAGINA = items_seleccionados
-        st.session_state['pagina_actual'] = 1
-        st.rerun()
+    with st.container(border=True):
+        st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
+        items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
+        if items_seleccionados != ITEMS_POR_PAGINA:
+            ITEMS_POR_PAGINA = items_seleccionados
+            st.session_state['pagina_actual'] = 1
+            st.rerun()
+
 
 # Función para eliminar un cliente
 def delete_client(index):
