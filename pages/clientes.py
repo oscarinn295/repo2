@@ -92,19 +92,22 @@ def delete_client(index):
 # Página de lista de clientes
 if st.session_state["page"] == "main":
     st.title("Gestión de Clientes")
-    # Botón para crear un nuevo cliente
-    if st.button("Crear Nuevo Cliente"):
-        st.session_state["nro"] = None  # No se está editando ningún cliente
-        st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
-        st.rerun()  # Forzar la redirección
+    col1,col2=st.columns(2)
+    with col1:
+        # Botón para crear un nuevo cliente
+        if st.button("Crear Nuevo Cliente"):
+            st.session_state["nro"] = None  # No se está editando ningún cliente
+            st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
+            st.rerun()  # Forzar la redirección
+    with col2:
+        # Botón para reiniciar datos
+        if st.button("Reiniciar datos"):
+            st.session_state["clientes"] = load()
     # Barra de búsqueda
     search_query = st.text_input("Buscar cliente (por cualquier campo)", key="search_query")
     display_table(search_query)
-
-    # Botón para reiniciar datos
-    if st.button("Reiniciar datos"):
-        st.session_state["clientes"] = load()
-        st.success("Datos reiniciados.")
+    if st.button("Ver todos los datos"):
+        st.dataframe(st.session_state['clientes'])
 
 # Página de gestión de clientes
 elif st.session_state["page"] == "gestionar":

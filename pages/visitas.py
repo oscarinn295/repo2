@@ -170,5 +170,7 @@ if st.session_state['page'] == 'main':
         st.session_state['page'] = 'reg'
         st.rerun()
     display_table()
+    if st.button('Ver todos los datos'):
+        st.dataframe(load())
 elif st.session_state['page'] == 'reg':
     registrar_visita()
