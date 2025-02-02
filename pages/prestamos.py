@@ -11,7 +11,7 @@ clientes=login.load_data(st.secrets['urls']['clientes'])
 def load():
     return login.load_data(url)
 def new(datos):
-    login.append_data(idc,datos)
+    login.append_data(datos,idc)
     st.session_state['prestamos']=load()
 def save(df):
     login.save_data(idc,df)
@@ -287,24 +287,21 @@ elif st.session_state["page"] == "gestionar_prestamo":
         st.rerun()  # Forzar la redirección
     # Manejo del evento al enviar el formulario
     if crear:
-        nuevo_prestamo = pd.DataFrame([{
-            'nro':len(st.session_state['prestamos']['nro'])+1,
-            "fecha": fecha,
-            "nombre": nombre_cliente,
-            "cantidad": cantidad_cuotas,
-            "capital": capital,
-            "tipo": tipo_prestamo,
-            "estado": estado,
-            "vence dia": venc_dia,
-            "asociado": producto_asociado,
-            "tnm": TNM,
-            "monto": monto,
-            "obs": obs
-        }])
+        nuevo_prestamo = [
+            max(st.session_state['prestamos']['nro'],default=0) + 1,
+            str(fecha),
+            nombre_cliente,
+            cantidad_cuotas,
+            capital,
+            tipo_prestamo,
+            estado,
+            venc_dia,
+            producto_asociado,
+            TNM,
+            monto,
+            obs,]
         if st.session_state["nro"] is None:
-            st.session_state["prestamos"] = pd.concat([st.session_state["prestamos"], nuevo_prestamo], ignore_index=True)
-            save(st.session_state["prestamos"])
-            
+            new(nuevo_prestamo)
         else:
             # Editar préstamo existente
             st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo

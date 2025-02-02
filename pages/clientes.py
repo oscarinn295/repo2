@@ -10,10 +10,10 @@ def load():
 
 def new(datos):
     login.append_data(idc,datos)
-    st.session_state['prestamos']=load()
+    st.session_state['clientes']=load()
 def save(df):
     login.save_data(idc,df)
-    st.session_state['prestamos']=load()
+    st.session_state['clientes']=load()
 
 
 login.generarLogin()

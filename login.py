@@ -15,20 +15,15 @@ def load_data(URL):
 def load_data1(URL):
     return pd.read_csv(URL)
 
-import numpy as np
 
-def convertir_valores(datos):
-    return [int(item) if isinstance(item, (np.int64, np.int32)) else item for item in datos]
-
-# Uso en append_data:
-def append_data(id: str, datos: list):
-    datos_convertidos = convertir_valores(datos)
+def append_data(data:list,ID):
+    # Datos a insertar
     payload = {
-        "fileId": id,
-        "values": [datos_convertidos]
+        "fileId":ID,
+        "values": [data]
     }
-    response = requests.post(api, data=json.dumps(payload))
-    return response.json()
+
+    requests.post(api, data=json.dumps(payload))
 
 def save_data(id: str, datos):
     """
@@ -42,9 +37,7 @@ def save_data(id: str, datos):
         "values": values,
         "all": True  # Sobrescribir toda la hoja
     }
-    response = requests.post(api, data=json.dumps(payload, default=str))
-    
-    return response.json()
+    requests.post(api, data=json.dumps(payload, default=str))
 
 # Ocultar el botón de Deploy con CSS
 hide_menu_style = """
