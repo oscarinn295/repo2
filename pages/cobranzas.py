@@ -46,6 +46,7 @@ if 'page' not in st.session_state:
     st.session_state['page'] = 'main'
 if 'cobranzas' not in st.session_state:
     st.session_state['cobranzas']=load()
+    
 
 def update_data(index, action, value=None):
     df = st.session_state["cobranzas"]

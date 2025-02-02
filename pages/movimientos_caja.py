@@ -24,6 +24,7 @@ login.generarLogin()
 st.session_state["page"] = "main"
 if 'mov' not in st.session_state:
     st.session_state['mov']=load()
+    
 
 # Función para mostrar la tabla con filtro de búsqueda
 def display_table(search_query=""):

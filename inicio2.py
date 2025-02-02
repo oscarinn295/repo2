@@ -1,3 +1,5 @@
+#lo mismo que pasó con prestamos2
+
 import streamlit as st
 import login
 import pandas as pd
@@ -10,23 +12,36 @@ st.text("Hecho por Oscar Molinas.")
 # Inicializar las bases de datos
 if "clientes" not in st.session_state:
     st.session_state["clientes"] = login.load_data(st.secrets['urls']['clientes'])
+
 if "cobranzas" not in st.session_state:
     st.session_state["cobranzas"] = login.load_data(st.secrets['urls']['cobranzas'])
+    st.session_state["cobranzas"]['vencimiento'] = st.session_state["cobranzas"]['vencimiento'].astype(str)
+    st.session_state["cobranzas"]['visita'] = st.session_state["cobranzas"]['visita'].astype(str)
+
 if "mov" not in st.session_state:
     st.session_state["mov"] = login.load_data(st.secrets['urls']['flujo_caja'])
+    st.session_state["mov"]['fecha']= st.session_state["mov"]['fecha'].astype(str)
+
+
 if "prestamos" not in st.session_state:
     st.session_state["prestamos"] = login.load_data(st.secrets['urls']['prestamos'])
+    st.session_state["prestamos"]['fecha']= st.session_state["prestamos"]['fecha'].astype(str)
+
 if 'repo_cobranzas' not in st.session_state:
     st.session_state['repo_cobranzas']=login.load_data(st.secrets['urls']['repo_cobranzas'])
+
 if 'comisiones' not in st.session_state:
     st.session_state['comisiones']=login.load_data(st.secrets['urls']['repo_comision'])
+
 if "repo_mensual" not in st.session_state:
     st.session_state["repo_mensual"] = login.load_data(st.secrets['urls']['repo_mensual'])
+
 if "morosos" not in st.session_state:
     st.session_state["morosos"] = login.load_data(st.secrets['urls']['repo_morosos'])
 
 if 'repo_ventas' not in st.session_state:
     st.session_state['repo_ventas']=login.load_data(st.secrets['urls']['repo_ventas'])
+    
 if 'visitas' not in st.session_state or not isinstance(st.session_state['visitas'], pd.DataFrame):
     st.session_state['visitas'] = login.load_data(st.secrets['urls']['visitas'])
-    
+    st.session_state["visitas"]['fecha']= st.session_state["visitas"]['fecha'].astype(str)

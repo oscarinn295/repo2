@@ -1,24 +1,34 @@
+#esta es una versión que estuve peleando con chatgpt y no me dió muchos resultados pero por ahi algo de acá sirve, estuve viendo el tema de los datetimes
+
 import login
 import datetime
 from datetime import date
 from dateutil.relativedelta import relativedelta
 import streamlit as st
+import pandas as pd
 
-idc=st.secrets['ids']['prestamos']
-url=st.secrets['urls']['prestamos']
-clientes=login.load_data(st.secrets['urls']['clientes'])
+# Configuración de rutas y clientes
+idc = st.secrets['ids']['prestamos']
+url = st.secrets['urls']['prestamos']
+clientes = login.load_data(st.secrets['urls']['clientes'])
 
 def load():
     return login.load_data(url)
-def new(datos):
-    login.append_data(idc,datos)
-    st.session_state['prestamos']=load()
-def save(df):
-    login.save_data(idc,df)
-    st.session_state['prestamos']=load()
 
+def new(datos):
+    login.append_data(idc, datos)
+    st.session_state['prestamos'] = load()
+
+def save(df):
+    login.save_data(idc, df)
+    st.session_state['prestamos'] = load()
+
+if 'prestamo' not in st.session_state:
+    st.session_state['prestamo'] = load()
+    st.session_state["prestamos"]['fecha']=st.session_state["prestamos"]['fecha'] = st.session_state["prestamos"]['fecha'].astype(str)
 
 def generar_fechas_pagos(fecha_registro, frecuencia, cuotas, dia_semana):
+    fecha_registro=datetime.strptime(fecha_registro)
     """
     Genera fechas de pago a partir de las condiciones dadas.
 
@@ -36,7 +46,7 @@ def generar_fechas_pagos(fecha_registro, frecuencia, cuotas, dia_semana):
     fechas = []
     fecha_actual = fecha_registro
 
-    for _ in range(cuotas):
+    for _ in range(int(cuotas)):
         # Ajustar la fecha al próximo día objetivo si no coincide
         while fecha_actual.weekday() != dia_objetivo:
             fecha_actual += datetime.timedelta(days=1)
@@ -55,120 +65,136 @@ def generar_fechas_pagos(fecha_registro, frecuencia, cuotas, dia_semana):
 
     return fechas
 
-
-
 def crear_visitas(data):
-    fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
+    fechas = generar_fechas_pagos(data['fecha'], data['tipo'], data['cantidad'], data['vence dia'])
     for fecha in fechas:
-        nueva_visita=[len(st.session_state['visitas'])+1,
-                      'cobranza',
-                      st.session_state['usuario'],
-                      data['nombre'],
-                      fecha,
-                      '']
-        login.append_data(st.secrets['ids']['visitas'],nueva_visita)
+        nueva_visita = [
+            len(st.session_state['visitas']) + 1,
+            'cobranza',
+            st.session_state['usuario'],
+            data['nombre'],
+            str(fecha),
+            ''
+        ]
+        login.append_data(st.secrets['ids']['visitas'], nueva_visita)
+
 def crear_cobranzas(data):
-    cobranzas=login.load_data(st.secrets['urls'['cobranzas']])
-    fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
-    i=0
-    for fecha in fechas:
-        nueva_cobranza=[
-            len(cobranzas)+1,
-            clientes[clientes.nombre==data['nombre']]['dni'],
-            st.session_state['usuario'],data['nombre'],
-            i,data['monto'],
-            data['monto'],
+    # Corrección en la clave de URL para cobranzas
+    cobranzas = login.load_data(st.secrets['urls']['cobranzas'])
+    
+    # Extraer valores escalares de data (asumiendo que data es un DataFrame de un solo registro)
+    fecha = data['fecha'].iloc[0] if isinstance(data['fecha'], pd.Series) else data['fecha']
+    tipo = data['tipo'].iloc[0] if isinstance(data['tipo'], pd.Series) else data['tipo']
+    cantidad = data['cantidad'].iloc[0] if isinstance(data['cantidad'], pd.Series) else data['cantidad']
+    vence_dia = data['vence dia'].iloc[0] if isinstance(data['vence dia'], pd.Series) else data['vence dia']
+    
+    fechas = generar_fechas_pagos(fecha, tipo, cantidad, vence_dia)
+    i = 0
+    for fecha_pago in fechas:
+        # Extraer el DNI del cliente como un valor único
+        dni_cliente = clientes.loc[clientes.nombre == data['nombre'].iloc[0], 'dni'].values[0] \
+                      if isinstance(data['nombre'], pd.Series) else clientes.loc[clientes.nombre == data['nombre'], 'dni'].values[0]
+        nueva_cobranza = [
+            len(cobranzas) + 1,
+            dni_cliente,
+            st.session_state['usuario'],
+            data['nombre'].iloc[0] if isinstance(data['nombre'], pd.Series) else data['nombre'],
+            i,
+            data['monto'].iloc[0] if isinstance(data['monto'], pd.Series) else data['monto'],
+            data['monto'].iloc[0] if isinstance(data['monto'], pd.Series) else data['monto'],
             0.0,
             0.0,
-            fecha,
-            fecha,
+            str(fecha_pago),
+            str(fecha_pago),
             'Pendiente de Pago'
-            ]
-        i+=1
-        login.append_data(st.secrets['ids']['cobranzas'],nueva_cobranza)
-caja=login.load_data(st.secrets['urls']['flujo_caja'])
+        ]
+        i += 1
+        login.append_data(st.secrets['ids']['cobranzas'], nueva_cobranza)
+
+
+caja = login.load_data(st.secrets['urls']['flujo_caja'])
 def egreso_caja(data):
-    mov=[data['fecha'],
-          f'PLAN {data['cantidad']} CUOTAS DE {data['capital']}',
-          0,
-          data['capital'],
-          -data['capital'],
-          caja['saldo'].sum()-data['capital']
+    # Se corrige el uso del f-string para evitar colisión de comillas
+    mov = [
+        str(data['fecha']),
+        f"PLAN {data['cantidad']} CUOTAS DE {data['capital']}",
+        0,
+        data['capital'],
+        -data['capital'],
+        caja['saldo'].sum() - data['capital']
     ]
-    login.append_data(st.secrets['ids']['flujo_caja'],mov)
+    login.append_data(st.secrets['ids']['flujo_caja'], mov)
+
 def reporte_venta(data):
-    clientes=login.load_data(st.secrets['urls']['clientes'])
-    cliente=clientes[clientes['nombre']==data['nombre']]
-    venta=[
+    clientes_data = login.load_data(st.secrets['urls']['clientes'])
+    cliente = clientes_data[clientes_data['nombre'] == data['nombre']]
+    venta = [
         st.session_state['usuario'],
-        cliente['dni'],
+        cliente['dni'].values[0],
         data['nombre'],
         data['id'],
         data['cantidad'],
         data['capital']
     ]
-    login.append_data(st.secrets['ids']['repo_venta'],venta)
-import streamlit as st
-import pandas as pd
+    login.append_data(st.secrets['ids']['repo_venta'], venta)
 
+# Inicialización de login y estados de sesión
 login.generarLogin()
 
-from datetime import date
 if 'page' not in st.session_state:
     st.session_state["page"] = "main"  # Página por defecto
-if 'prestamo' not in st.session_state:
-    st.session_state['prestamo']=load()
+
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
+
 def display_table(search_query=""):
     st.subheader("Préstamos Registrados")
-
     df = st.session_state["prestamos"]
 
     # Filtrar datos según la consulta de búsqueda
     if search_query:
         df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
+    
     # Configuración de paginación
     ITEMS_POR_PAGINA = 10
-    # Paginación
     total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
     inicio = (st.session_state['pagina_actual'] - 1) * ITEMS_POR_PAGINA
     fin = inicio + ITEMS_POR_PAGINA
-    df_paginado = df.iloc[inicio:fin]
+    df_paginado = df.iloc[inicio:fin] if not df.empty else pd.DataFrame()
 
     if not df.empty:
         updated_rows = []  # Para almacenar cambios de estado temporalmente
         for idx, row in df_paginado.iterrows():
-            with st.container(border=True):
-                col1, col2, col3 = st.columns([4, 2, 1])
+            with st.container():
+                col1, col2 = st.columns(2)
                 with col1:
-                    st.write(f"**Fecha:** {row['fecha']} |**Capital:** {row['capital']}")
+                    st.write(f"**Fecha:** {row['fecha']} | **Capital:** {row['capital']}")
                     st.write(f"**Cliente:** {row['nombre']}")
                 with col2:
                     new_estado = st.selectbox(
-                        "Estado*", 
+                        "Estado*",
                         ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
-                        "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
+                         "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
                         index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
-                            "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
+                               "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
                         key=f"estado_{idx}"
                     )
-                    # Agregar cambios si el estado cambió
                     if new_estado != row["estado"]:
-                        updated_rows.append((index, new_estado))
+                        updated_rows.append((idx, new_estado))
                     if st.button(f'✏️ Editar', key=f'edit_{idx}'):
                         st.session_state["nro"] = idx
                         st.session_state["page"] = "gestionar_prestamo"
                         st.rerun()
 
         # Actualizar los cambios en el DataFrame
-        for index, new_estado in updated_rows:
-            st.session_state["prestamos"].loc[index, "estado"] = new_estado
-            save(st.session_state["prestamos"])  # Guardar cambios al archivo Excel
+        for idx, new_estado in updated_rows:
+            st.session_state["prestamos"].loc[idx, "estado"] = new_estado
+            save(st.session_state["prestamos"])  # Guardar cambios al archivo
     else:
         st.warning("No se encontraron resultados.")
+
     # Controles de paginación
-    with st.container(border=True):
+    with st.container():
         col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
         with col_pag1:
             if st.session_state['pagina_actual'] > 1:
@@ -180,8 +206,9 @@ def display_table(search_query=""):
                 if st.button("Siguiente ➡"):
                     st.session_state['pagina_actual'] += 1
                     st.rerun()
+
     # Contador de registros y selector de cantidad por página
-    with st.container(border=True):
+    with st.container():
         st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
         items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
         if items_seleccionados != ITEMS_POR_PAGINA:
@@ -193,12 +220,18 @@ def display_table(search_query=""):
 def guardar_prestamo(data):
     st.session_state["prestamos"] = pd.concat([st.session_state["prestamos"], data], ignore_index=True)
     save(st.session_state["prestamos"])
-    login.historial(data,'nuevo _prestamo')
+    # Registrar historial para cada préstamo nuevo
+    for _, row in data.iterrows():
+        login.historial(row, 'nuevo_prestamo')
+    crear_cobranzas(data)
+    crear_visitas(data)
+    egreso_caja(data)
+    reporte_venta(data)
 
 # Página de lista de préstamos
 if st.session_state["page"] == "main":
     st.title("Gestión de Préstamos")
-    col1,col2=st.columns(2)
+    col1, col2 = st.columns(2)
     with col1:
         # Botón para crear un nuevo préstamo
         if st.button("Crear Préstamo"):
@@ -217,56 +250,71 @@ if st.session_state["page"] == "main":
         st.dataframe(load())
 
 # Página de gestión de préstamos
-elif st.session_state["page"] == "gestionar_prestamo":
-    st.title("Crear Prestamo")
+if st.session_state["page"] == "gestionar_prestamo":
+    st.title("Crear Préstamo")
 
     # Si estamos editando un préstamo, cargar datos existentes
     if st.session_state["nro"] is not None:
         prestamo = st.session_state["prestamos"].iloc[st.session_state["nro"]]
         fecha = pd.to_datetime(prestamo["fecha"]).date() if prestamo["fecha"] else date.today()
-        nombre_cliente = prestamo["nombre"]
+        nombre_cliente_default = prestamo["nombre"]
         capital = prestamo["capital"]
         tipo_prestamo = prestamo["tipo"]
         cantidad_cuotas = prestamo["cantidad"]
         estado = prestamo["estado"]
-        producto_asociado=prestamo["producto asociado"]
-        TNM=prestamo['tnm']
-        monto=prestamo["monto"]
-        vence_dia=prestamo['vence dia']
-        obs=prestamo["obs"]
+        producto_asociado = prestamo["producto asociado"]
+        TNM = prestamo['tnm']
+        monto = prestamo["monto"]
+        vence_dia = prestamo['vence dia']
+        obs = prestamo["obs"]
     else:
         # Valores por defecto para un nuevo préstamo
         fecha = date.today()
-        nombre_cliente = ""
+        nombre_cliente_default = ""
         capital = 0.0
         tipo_prestamo = "mensual"
         cantidad_cuotas = 1.0
         estado = "liquidado"
-        producto_asociado=''
-        TNM=18.0
-        monto=0.0
-        vence_dia='lunes'
-        obs=''
+        producto_asociado = ''
+        TNM = 18.0
+        monto = 0.0
+        vence_dia = 'lunes'
+        obs = ''
 
     # Formulario para crear o editar un préstamo
     with st.form("form_prestamo"):
         col1, col2 = st.columns(2)
-        lista=['seleccione un cliente']
+        lista = ['seleccione un cliente']
         for nombre in clientes['nombre']:
             lista.append(nombre)
         with col1:
-            nombre_cliente = st.selectbox('Cliente',lista,index=lista.index(prestamo['nombre']) if st.session_state["nro"] is not None else 0) 
-            venc_dia=st.selectbox('Dia Vencimiento Cuota',["Seleccione una opción",'lunes','martes','miercoles','jueves','viernes','sabado'],index=["Seleccione una opción",'lunes','martes','miercoles','jueves','viernes','sabado'].index(vence_dia))
-            producto_asociado=st.text_input('Producto Asociado*',value=producto_asociado)
-            estado = st.selectbox("Estado*", ["Seleccione una opción", "pendiente","aceptado","liquidado","al dia","en mora","en juicio","cancelado","finalizado"], index=["Seleccione una opción", "pendiente","aceptado","liquidado","al dia","en mora","en juicio","cancelado","finalizado"].index(estado))
-            tipo_prestamo = st.radio("Tipo de Préstamo*", ["mensual", "quincenal", "semanal"], index=["mensual", "quincenal", "semanal"].index(tipo_prestamo))
-            
+            if st.session_state["nro"] is not None and nombre_cliente_default in lista:
+                index_cliente = lista.index(nombre_cliente_default)
+            else:
+                index_cliente = 0
+            nombre_cliente = st.selectbox('Cliente', lista, index=index_cliente)
+            venc_dia = st.selectbox(
+                'Dia Vencimiento Cuota', 
+                ["Seleccione una opción", 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'], 
+                index=["Seleccione una opción", 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'].index(vence_dia)
+            )
+            producto_asociado = st.text_input('Producto Asociado*', value=producto_asociado)
+            estado = st.selectbox(
+                "Estado*", 
+                ["Seleccione una opción", "pendiente", "aceptado", "liquidado", "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
+                index=["Seleccione una opción", "pendiente", "aceptado", "liquidado", "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(estado)
+            )
+            tipo_prestamo = st.radio(
+                "Tipo de Préstamo*", 
+                ["mensual", "quincenal", "semanal"], 
+                index=["mensual", "quincenal", "semanal"].index(tipo_prestamo)
+            )
         with col2:
             cantidad_cuotas = st.number_input("Cantidad de Cuotas*", min_value=1.0, step=1.0, value=cantidad_cuotas)
             capital = st.number_input("Capital*", min_value=0.0, step=1000.0, value=float(capital))
-            TNM=st.number_input('T.N.M*', min_value=0.0, step=0.1,value=TNM)
-            monto=st.number_input('Monto Cuota',min_value=0.0, step=1000.0,value=monto)
-        obs=st.text_input('Observaciones',value=obs)
+            TNM = st.number_input('T.N.M*', min_value=0.0, step=0.1, value=TNM)
+            monto = st.number_input('Monto Cuota', min_value=0.0, step=1000.0, value=monto)
+        obs = st.text_input('Observaciones', value=obs)
         # Botón de acción dentro del formulario
         crear = st.form_submit_button("Crear")
 
@@ -274,30 +322,31 @@ elif st.session_state["page"] == "gestionar_prestamo":
     if st.button("Cancelar"):
         st.session_state["page"] = "main"  # Regresar a la página de lista
         st.rerun()  # Forzar la redirección
+
     # Manejo del evento al enviar el formulario
     if crear:
-        if not (nombre_cliente or estado == "Seleccione una opción"or monto==0.0 or TNM==0 or capital==0.0):
+        if not (nombre_cliente and estado != "Seleccione una opción" and monto != 0.0 and TNM != 0 and capital != 0.0):
             st.error("Por favor, complete todos los campos obligatorios marcados con *.")
         else:
             nuevo_prestamo = pd.DataFrame([{
-                "fecha": fecha,
+                "fecha": str(fecha),
                 "nombre": nombre_cliente,
                 "cantidad": cantidad_cuotas,
                 "capital": capital,
                 "tipo": tipo_prestamo,
                 "estado": estado,
                 "vence dia": venc_dia,
-                "asociado": producto_asociado,
+                "producto asociado": producto_asociado,
                 "tnm": TNM,
                 "monto": monto,
                 "obs": obs
             }])
             if st.session_state["nro"] is not None:
                 # Editar préstamo existente
-                st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo
-                login.historial(st.session_state["prestamos"].iloc[st.session_state["nro"]],'edicion_prestamo_viejo')
+                st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo.iloc[0]
+                login.historial(st.session_state["prestamos"].iloc[st.session_state["nro"]].to_dict(), 'edicion_prestamo_viejo')
                 save(st.session_state["prestamos"])
-                login.historial(nuevo_prestamo,'edicion_prestamo_nuevo')
+                login.historial(nuevo_prestamo.iloc[0].to_dict(), 'edicion_prestamo_nuevo')
             else:
                 # Crear un nuevo préstamo
                 guardar_prestamo(nuevo_prestamo)
@@ -305,34 +354,21 @@ elif st.session_state["page"] == "gestionar_prestamo":
             st.session_state["page"] = "main"
             st.rerun()
 
-
-if st.session_state['usuario']=="admin":
-    st.title("subir nuevos datos")
-    #concatenar o sobreescribir
-    # Título de la aplicación
+# Opciones adicionales para el usuario "admin": carga de archivos CSV
+if st.session_state['usuario'] == "admin":
+    st.title("Subir nuevos datos")
     st.title("Cargar y analizar archivo CSV")
 
-    # Widget para cargar el archivo
     uploaded_file = st.file_uploader("Sube un archivo CSV", type="csv")
 
     if uploaded_file is not None:
-        # Leer el archivo CSV
-        df = pd.read_csv(uploaded_file)
-
-        # Mostrar un mensaje de éxito
+        df_csv = pd.read_csv(uploaded_file)
         st.success("Archivo cargado con éxito!")
-
-        # Mostrar los datos
         st.subheader("Vista previa de los datos:")
-        st.dataframe(df.head())  # Muestra las primeras filas
-
-        # Mostrar información adicional del DataFrame
+        st.dataframe(df_csv.head())
         st.subheader("Descripción estadística:")
-        st.write(df.describe())
-
-        # Mostrar las columnas disponibles
+        st.write(df_csv.describe())
         st.subheader("Columnas del archivo:")
-        st.write(df.columns.tolist())
-
+        st.write(df_csv.columns.tolist())
     else:
         st.info("Por favor, sube un archivo para comenzar.")

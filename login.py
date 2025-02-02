@@ -15,16 +15,19 @@ def load_data(URL):
 def load_data1(URL):
     return pd.read_csv(URL)
 
+import numpy as np
+
+def convertir_valores(datos):
+    return [int(item) if isinstance(item, (np.int64, np.int32)) else item for item in datos]
+
+# Uso en append_data:
 def append_data(id: str, datos: list):
-    """
-    Envía datos a Google Sheets usando la API de Google Apps Script.
-    """
+    datos_convertidos = convertir_valores(datos)
     payload = {
         "fileId": id,
-        "values": [datos]
+        "values": [datos_convertidos]
     }
     response = requests.post(api, data=json.dumps(payload))
-    
     return response.json()
 
 def save_data(id: str, datos):
@@ -39,7 +42,7 @@ def save_data(id: str, datos):
         "values": values,
         "all": True  # Sobrescribir toda la hoja
     }
-    response = requests.post(api, data=json.dumps(payload))
+    response = requests.post(api, data=json.dumps(payload, default=str))
     
     return response.json()
 
