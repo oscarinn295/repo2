@@ -58,57 +58,69 @@ def generar_fechas_pagos(fecha_registro, frecuencia, cuotas, dia_semana):
 
 
 def crear_visitas(data):
+    st.session_state['visitas']=login.load_data(st.secrets['urls']['visitas'])
     fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
     for fecha in fechas:
-        nueva_visita=[len(st.session_state['visitas'])+1,
-                      'cobranza',
-                      st.session_state['usuario'],
-                      data['nombre'],
-                      fecha,
-                      '']
-        login.append_data(st.secrets['ids']['visitas'],nueva_visita)
+        nueva_visita=pd.DataFrame([{
+            "nro":len(st.session_state['visitas'])+1,
+                      'visita':'cobranza',
+                      'vendedor':st.session_state['usuario'],
+                      'nombre':data['nombre'],
+                      'fecha': fecha,
+                      'notas':''
+                      }])
+        st.session_state["visitas"] = pd.concat([st.session_state["visitas"], nueva_visita], ignore_index=True)
+        login.save_data(st.secrets['ids']['visitas'],nueva_visita)
 def crear_cobranzas(data):
-    cobranzas=login.load_data(st.secrets['urls'['cobranzas']])
+    st.session_state['cobranzas']=login.load_data(st.secrets['urls']['cobranzas'])
     fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
     i=0
     for fecha in fechas:
-        nueva_cobranza=[
-            len(cobranzas)+1,
-            clientes[clientes.nombre==data['nombre']]['dni'],
-            st.session_state['usuario'],data['nombre'],
-            i,data['monto'],
-            data['monto'],
-            0.0,
-            0.0,
-            fecha,
-            fecha,
-            'Pendiente de Pago'
-            ]
+        nueva_cobranza=pd.DataFrame([{
+            'id':len(st.session_state['cobranzas'])+1,
+            'dni':clientes[clientes.nombre==data['nombre']]['dni'],
+            'vendedor/cobrador':st.session_state['usuario'],
+            'cliente':data['nombre'],
+            'n_cuota':i,
+            'monto':data['monto'],
+            'monto_recalculado_mora':data['monto'],
+            'pago':0.0,
+            'radondeo':0.0,
+            'vencimiento':fecha,
+            'visita':fecha,
+            'estado':'Pendiente de Pago'
+            }])
         i+=1
-        login.append_data(st.secrets['ids']['cobranzas'],nueva_cobranza)
+        st.session_state["cobranzas"] = pd.concat([st.session_state["cobranzas"], nueva_cobranza], ignore_index=True)
+        login.save_data(st.secrets['ids']['cobranzas'],nueva_cobranza)
 caja=login.load_data(st.secrets['urls']['flujo_caja'])
 def egreso_caja(data):
-    mov=[data['fecha'],
-          f'PLAN {data['cantidad']} CUOTAS DE {data['capital']}',
-          0,
-          data['capital'],
-          -data['capital'],
-          caja['saldo'].sum()-data['capital']
-    ]
-    login.append_data(st.secrets['ids']['flujo_caja'],mov)
+    st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
+    mov=pd.DataFrame([{
+        'fecha':data['fecha'],
+          'concepto': f"PLAN {data['cantidad']} CUOTAS DE {data['capital']}",
+          'ingreso':0,
+          'egreso':data['capital'],
+          'total':-data['capital'],
+          'saldo':caja['saldo'].sum()-data['capital']
+          }])
+    st.session_state["mov"] = pd.concat([st.session_state["mov"], mov], ignore_index=True)
+    login.save_data(st.secrets['ids']['mov'],mov)
 def reporte_venta(data):
+    st.session_state["repo_ventas"]=login.load_data(st.secrets['urls']['repo_ventas'])
     clientes=login.load_data(st.secrets['urls']['clientes'])
     cliente=clientes[clientes['nombre']==data['nombre']]
-    venta=[
-        st.session_state['usuario'],
-        cliente['dni'],
-        data['nombre'],
-        data['id'],
-        data['cantidad'],
-        data['capital']
-    ]
-    login.append_data(st.secrets['ids']['repo_venta'],venta)
-import streamlit as st
+    venta=pd.DataFrame([{
+        'vendedor':st.session_state['usuario'],
+        'dni':cliente['dni'],
+        'nombre':data['nombre'],
+        'id':data['id'],
+        'cantidad':data['cantidad'],
+        'capital':data['capital']
+        }])
+    st.session_state["repo_ventas"] = pd.concat([st.session_state["repo_ventas"], venta], ignore_index=True)
+    login.save_data(st.secrets['ids']['repo_ventas'],venta)
+
 import pandas as pd
 
 login.generarLogin()
@@ -116,8 +128,8 @@ login.generarLogin()
 from datetime import date
 if 'page' not in st.session_state:
     st.session_state["page"] = "main"  # Página por defecto
-if 'prestamo' not in st.session_state:
-    st.session_state['prestamo']=load()
+if 'prestamos' not in st.session_state:
+    st.session_state['prestamos']=load()
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
 def display_table(search_query=""):
@@ -191,18 +203,17 @@ def display_table(search_query=""):
 
 # Función para guardar un nuevo préstamo
 def guardar_prestamo(data):
-    st.session_state["prestamos"] = pd.concat([st.session_state["prestamos"], data], ignore_index=True)
-    save(st.session_state["prestamos"])
-    login.historial(data,'nuevo _prestamo')
+    st.session_state["prestamos"]=load()
+    #login.historial(data,'nuevo _prestamo')
 
 # Página de lista de préstamos
 if st.session_state["page"] == "main":
+    st.session_state["nro"] = None
     st.title("Gestión de Préstamos")
     col1,col2=st.columns(2)
     with col1:
         # Botón para crear un nuevo préstamo
         if st.button("Crear Préstamo"):
-            st.session_state["nro"] = None  # No se está editando ningún cliente
             st.session_state["page"] = "gestionar_prestamo"
             st.rerun()
     with col2:
@@ -276,34 +287,32 @@ elif st.session_state["page"] == "gestionar_prestamo":
         st.rerun()  # Forzar la redirección
     # Manejo del evento al enviar el formulario
     if crear:
-        if not (nombre_cliente or estado == "Seleccione una opción"or monto==0.0 or TNM==0 or capital==0.0):
-            st.error("Por favor, complete todos los campos obligatorios marcados con *.")
+        nuevo_prestamo = pd.DataFrame([{
+            'nro':len(st.session_state['prestamos']['nro'])+1,
+            "fecha": fecha,
+            "nombre": nombre_cliente,
+            "cantidad": cantidad_cuotas,
+            "capital": capital,
+            "tipo": tipo_prestamo,
+            "estado": estado,
+            "vence dia": venc_dia,
+            "asociado": producto_asociado,
+            "tnm": TNM,
+            "monto": monto,
+            "obs": obs
+        }])
+        if st.session_state["nro"] is None:
+            st.session_state["prestamos"] = pd.concat([st.session_state["prestamos"], nuevo_prestamo], ignore_index=True)
+            save(st.session_state["prestamos"])
+            
         else:
-            nuevo_prestamo = pd.DataFrame([{
-                "fecha": fecha,
-                "nombre": nombre_cliente,
-                "cantidad": cantidad_cuotas,
-                "capital": capital,
-                "tipo": tipo_prestamo,
-                "estado": estado,
-                "vence dia": venc_dia,
-                "asociado": producto_asociado,
-                "tnm": TNM,
-                "monto": monto,
-                "obs": obs
-            }])
-            if st.session_state["nro"] is not None:
-                # Editar préstamo existente
-                st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo
-                login.historial(st.session_state["prestamos"].iloc[st.session_state["nro"]],'edicion_prestamo_viejo')
-                save(st.session_state["prestamos"])
-                login.historial(nuevo_prestamo,'edicion_prestamo_nuevo')
-            else:
-                # Crear un nuevo préstamo
-                guardar_prestamo(nuevo_prestamo)
-
-            st.session_state["page"] = "main"
-            st.rerun()
+            # Editar préstamo existente
+            st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo
+            #login.historial(st.session_state["prestamos"].iloc[st.session_state["nro"]],'edicion_prestamo_viejo')
+            save(st.session_state["prestamos"])
+            #login.historial(nuevo_prestamo,'edicion_prestamo_nuevo')
+        st.session_state["page"] = "main"
+        st.rerun()
 
 
 if st.session_state['usuario']=="admin":

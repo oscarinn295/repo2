@@ -87,7 +87,7 @@ def display_table(search_query=""):
 def delete_client(index):
     st.session_state["clientes"].drop(index=index, inplace=True)
     save(st.session_state["clientes"])
-    login.historial(st.session_state["clientes"].loc[index],'borrado')
+    #login.historial(st.session_state["clientes"].loc[index],'borrado')
 
 # Página de lista de clientes
 if st.session_state["page"] == "main":
@@ -160,15 +160,15 @@ elif st.session_state["page"] == "gestionar":
                 "vendedor": vendedor,
             }])
             st.session_state["clientes"] = pd.concat([st.session_state["clientes"], nuevo_cliente], ignore_index=True)
-            login.historial(nuevo_cliente,'nuevo cliente')
+            #login.historial(nuevo_cliente,'nuevo cliente')
         else:
             # Actualizar cliente existente
             idx = st.session_state["nro"]
-            login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_viejo')
+            #login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_viejo')
             st.session_state["clientes"].loc[idx, ["dni", "nombre", "direccion", "celular", "vendedor"]] = [
                 dni, nombre, direccion, celular, vendedor
             ]
-            login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_nuevo')
+            #login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_nuevo')
         save(st.session_state["clientes"])
         st.success("Cliente guardado.")
         reset_form()
