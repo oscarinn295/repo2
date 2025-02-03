@@ -217,16 +217,16 @@ def display_table(search_query=""):
             st.rerun()
 
 # Función para guardar un nuevo préstamo
-def guardar_prestamo(data):
-    st.session_state["prestamos"] = pd.concat([st.session_state["prestamos"], data], ignore_index=True)
-    save(st.session_state["prestamos"])
+#def guardar_prestamo(data):
+    #st.session_state["prestamos"] = pd.concat([st.session_state["prestamos"], data], ignore_index=True)
+    #save(st.session_state["prestamos"])
     # Registrar historial para cada préstamo nuevo
-    for _, row in data.iterrows():
-        login.historial(row, 'nuevo_prestamo')
-    crear_cobranzas(data)
-    crear_visitas(data)
-    egreso_caja(data)
-    reporte_venta(data)
+    #for _, row in data.iterrows():
+    #    login.historial(row, 'nuevo_prestamo')
+    #crear_cobranzas(data)
+    #crear_visitas(data)
+    #egreso_caja(data)
+    #reporte_venta(data)
 
 # Página de lista de préstamos
 if st.session_state["page"] == "main":
@@ -348,9 +348,7 @@ if st.session_state["page"] == "gestionar_prestamo":
                 save(st.session_state["prestamos"])
                 login.historial(nuevo_prestamo.iloc[0].to_dict(), 'edicion_prestamo_nuevo')
             else:
-                # Crear un nuevo préstamo
-                guardar_prestamo(nuevo_prestamo)
-
+                pass
             st.session_state["page"] = "main"
             st.rerun()
 
