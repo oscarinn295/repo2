@@ -1,7 +1,4 @@
-los vencimientos por mes son los 10, 20 o 30 a eleccion del cliente
-si el dia del registro es antes del vencimiento se paga ese mismo mes
-solo en casos excepcionales se para el mes siguiente
-los vencimientos para los prestamos semanales son por dia de la semana
+
 comisiones:
     se comisiona por venta y por cobranzas
     las comisiones por ventas no tienen piso
@@ -15,5 +12,12 @@ comisiones:
     hasta 5 millones:5%
     pasas eso cobrás 5.5%
 si saco un prestamo semanal se paga el mismo dia de la semana que se registra
-si saco un prestamo quincenal
-el reporte mensual
+si saco un prestamo quincenal se paga de acá a 2 semanas
+mensual: 10, 20 y 30 a eleccion del cliente
+    si el dia del registro es antes del vencimiento se paga ese mismo mes
+    solo en casos excepcionales se para el mes siguiente
+eliminamos el registro de visitas
+cuando se crea un prestamo solo se crean los dias de cobranza
+si pasó la fecha de cobranza y no se actualizó llevar a un apartado de pendientes de actualización
+si se registra como no abono, se va a morosos, y queda marcada la cobranza, si se registra el pago desaparece el registro de la cobranza
+tambien eliminamos el reagendar visitas

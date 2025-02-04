@@ -231,11 +231,11 @@ def egreso_caja(data):
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 def reporte_venta(data):
     venta=[
-        st.session_state['usuario'],
-        data[2],
-        data[0],
-        data[3],
-        data[4]
+        str(st.session_state['usuario']),
+        str(data[2]),
+        int(data[0]),
+        int(data[3]),
+        float(data[4])
         ]
     login.append_data(venta,st.secrets['ids']['repo_ventas'])
 
