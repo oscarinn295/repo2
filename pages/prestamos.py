@@ -219,6 +219,7 @@ def crear_cobranzas(data):
 def egreso_caja(data):
     st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
     caja=st.session_state["mov"]
+    caja['saldo'] = pd.to_numeric(caja['saldo'], errors='coerce')
     mov=[
         data[1],
         f"PLAN {data[3]} CUOTAS DE {data[4]}",
