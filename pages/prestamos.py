@@ -317,7 +317,6 @@ if st.session_state["page"] == "gestionar_prestamo":
             obs,]
         if st.session_state["nro"] is None:
             new(nuevo_prestamo)
-            egreso_caja(nuevo_prestamo)
             reporte_venta(nuevo_prestamo)
         else:
             #Editar préstamo existente
