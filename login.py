@@ -102,7 +102,6 @@ def generarMenu(usuario):
             st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
             st.page_link('pages/repo_cobranzas.py', label="Reporte Cobranzas", icon=":material/group:")
             st.page_link('pages/repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
-            st.page_link('pages/visitas.py', label="Reporte de Visitas", icon=":material/group:")
 
             # Botón de cierre de sesión
             if st.button("Salir"):
