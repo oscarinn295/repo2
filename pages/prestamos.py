@@ -230,19 +230,14 @@ def egreso_caja(data):
         ]
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 def reporte_venta(data):
-    st.session_state["repo_ventas"]=login.load_data(st.secrets['urls']['repo_ventas'])
-    clientes=login.load_data(st.secrets['urls']['clientes'])
-    cliente=clientes[clientes['nombre']==data[2]]
     venta=[
         st.session_state['usuario'],
-        cliente['dni'].iloc[0],
         data[2],
         data[0],
         data[3],
         data[4]
         ]
     login.append_data(venta,st.secrets['ids']['repo_ventas'])
-
 
 
 
@@ -326,7 +321,7 @@ if st.session_state["page"] == "gestionar_prestamo":
             reporte_venta(nuevo_prestamo)
         else:
             #Editar préstamo existente
-            st.session_state["prestamos"].loc['nro'==st.session_state["nro"]] = nuevo_prestamo
+            st.session_state["prestamos"].loc[st.session_state["prestamos"]['nro'] == st.session_state["nro"], :] = nuevo_prestamo
             save(st.session_state["prestamos"])
         st.session_state["page"] = "main"
         st.rerun()
