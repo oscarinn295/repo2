@@ -221,7 +221,7 @@ def egreso_caja(data):
     caja=st.session_state["mov"]
     mov=[
         data[1],
-        f"PLAN {data['cantidad']} CUOTAS DE {data[4]}",
+        f"PLAN {data[3]} CUOTAS DE {data[4]}",
         0,
         data[4],
         -data[4],
