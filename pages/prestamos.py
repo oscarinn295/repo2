@@ -235,7 +235,7 @@ def reporte_venta(data):
     cliente=clientes[clientes['nombre']==data[2]]
     venta=[
         st.session_state['usuario'],
-        cliente['dni'],
+        cliente['dni'].iloc[0],
         data[2],
         data[0],
         data[3],
