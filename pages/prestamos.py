@@ -17,110 +17,6 @@ def save(df):
     login.save_data(idc,df)
     st.session_state['prestamos']=load()
 
-
-def generar_fechas_pagos(fecha_registro, frecuencia, cuotas, dia_semana):
-    """
-    Genera fechas de pago a partir de las condiciones dadas.
-
-    :param fecha_registro: Fecha en la que se registra el préstamo (datetime.date)
-    :param frecuencia: Frecuencia de pago ('semanal', 'quincenal', 'mensual')
-    :param cuotas: Número de cuotas (int)
-    :param dia_semana: Día de la semana elegido para los pagos (str: 'lunes', 'martes', ..., 'sábado')
-    :return: Lista de fechas de pago (list of datetime.date)
-    """
-    dias_semana = {'lunes': 0, 'martes': 1, 'miércoles': 2, 'jueves': 3, 'viernes': 4, 'sábado': 5}
-    if dia_semana not in dias_semana:
-        raise ValueError("El día de la semana debe ser uno de: 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'")
-
-    dia_objetivo = dias_semana[dia_semana]
-    fechas = []
-    fecha_actual = fecha_registro
-
-    for _ in range(cuotas):
-        # Ajustar la fecha al próximo día objetivo si no coincide
-        while fecha_actual.weekday() != dia_objetivo:
-            fecha_actual += datetime.timedelta(days=1)
-
-        fechas.append(fecha_actual)
-
-        # Incrementar según la frecuencia
-        if frecuencia == 'semanal':
-            fecha_actual += datetime.timedelta(weeks=1)
-        elif frecuencia == 'quincenal':
-            fecha_actual += datetime.timedelta(weeks=2)
-        elif frecuencia == 'mensual':
-            fecha_actual += relativedelta(months=1)
-        else:
-            raise ValueError("La frecuencia debe ser 'semanal', 'quincenal' o 'mensual'")
-
-    return fechas
-
-
-
-def crear_visitas(data):
-    st.session_state['visitas']=login.load_data(st.secrets['urls']['visitas'])
-    fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
-    for fecha in fechas:
-        nueva_visita=pd.DataFrame([{
-            "nro":len(st.session_state['visitas'])+1,
-                      'visita':'cobranza',
-                      'vendedor':st.session_state['usuario'],
-                      'nombre':data['nombre'],
-                      'fecha': fecha,
-                      'notas':''
-                      }])
-        st.session_state["visitas"] = pd.concat([st.session_state["visitas"], nueva_visita], ignore_index=True)
-        login.save_data(st.secrets['ids']['visitas'],nueva_visita)
-def crear_cobranzas(data):
-    st.session_state['cobranzas']=login.load_data(st.secrets['urls']['cobranzas'])
-    fechas=generar_fechas_pagos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
-    i=0
-    for fecha in fechas:
-        nueva_cobranza=pd.DataFrame([{
-            'id':len(st.session_state['cobranzas'])+1,
-            'dni':clientes[clientes.nombre==data['nombre']]['dni'],
-            'vendedor/cobrador':st.session_state['usuario'],
-            'cliente':data['nombre'],
-            'n_cuota':i,
-            'monto':data['monto'],
-            'monto_recalculado_mora':data['monto'],
-            'pago':0.0,
-            'radondeo':0.0,
-            'vencimiento':fecha,
-            'visita':fecha,
-            'estado':'Pendiente de Pago'
-            }])
-        i+=1
-        st.session_state["cobranzas"] = pd.concat([st.session_state["cobranzas"], nueva_cobranza], ignore_index=True)
-        login.save_data(st.secrets['ids']['cobranzas'],nueva_cobranza)
-caja=login.load_data(st.secrets['urls']['flujo_caja'])
-def egreso_caja(data):
-    st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
-    mov=pd.DataFrame([{
-        'fecha':data['fecha'],
-          'concepto': f"PLAN {data['cantidad']} CUOTAS DE {data['capital']}",
-          'ingreso':0,
-          'egreso':data['capital'],
-          'total':-data['capital'],
-          'saldo':caja['saldo'].sum()-data['capital']
-          }])
-    st.session_state["mov"] = pd.concat([st.session_state["mov"], mov], ignore_index=True)
-    login.save_data(st.secrets['ids']['mov'],mov)
-def reporte_venta(data):
-    st.session_state["repo_ventas"]=login.load_data(st.secrets['urls']['repo_ventas'])
-    clientes=login.load_data(st.secrets['urls']['clientes'])
-    cliente=clientes[clientes['nombre']==data['nombre']]
-    venta=pd.DataFrame([{
-        'vendedor':st.session_state['usuario'],
-        'dni':cliente['dni'],
-        'nombre':data['nombre'],
-        'id':data['id'],
-        'cantidad':data['cantidad'],
-        'capital':data['capital']
-        }])
-    st.session_state["repo_ventas"] = pd.concat([st.session_state["repo_ventas"], venta], ignore_index=True)
-    login.save_data(st.secrets['ids']['repo_ventas'],venta)
-
 import pandas as pd
 
 login.generarLogin()
@@ -132,6 +28,8 @@ if 'prestamos' not in st.session_state:
     st.session_state['prestamos']=load()
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
+
+
 def display_table(search_query=""):
     st.subheader("Préstamos Registrados")
 
@@ -227,8 +125,129 @@ if st.session_state["page"] == "main":
     if st.button('Ver todos los datos'):
         st.dataframe(load())
 
+
+
+
+#gestionar prestamos, funciones
+def generar_fechas_prestamos(fecha_registro:str, frecuencia:str, cuotas:int,vencimiento):
+    """
+    Genera fechas de pago a partir de las condiciones dadas.
+    :param fecha_registro: que originalmente es un datetime pero como que no me estaba dejando guardar datetime
+        así que primero son los strings que salen de eso
+        los string de fecha para este caso tienen que venir con este formato %d/%m/%Y
+    :param frecuencia: Frecuencia de pago ('semanal', 'quincenal', 'mensual')
+    :param cuotas: Número de cuotas
+    :vencimiento:10, 20 o 30
+    :return: Lista de fechas de pago (list of datetime.date)
+    """
+    fecha_registro=datetime.strptime(fecha_registro, "%d/%m/%Y")
+    fecha_actual=fecha_registro
+    if frecuencia=='mensual':
+        if int(fecha_registro.dt.day())<vencimiento:
+            fecha_objetivo=fecha_registro+datetime.timedelta(months=1)+ datetime.timedelta(days=vencimiento-fecha_registro.dt.day())
+        else:
+            fecha_objetivo=fecha_actual
+        fechas=[]
+        for _ in range(cuotas):
+            fechas.append(fecha_objetivo.strftime("%d/%m/%Y"))
+            fecha_objetivo+=datetime.timedelta(months=1)
+        return fechas
+    elif frecuencia=='quincenal':
+        if int(fecha_registro.dt.day())<vencimiento:
+            while int(fecha_actual.dt.day()) != vencimiento:
+                    fecha_actual += datetime.timedelta(days=1)
+        else:
+            pass
+        fechas=[]
+        for _ in range(cuotas):
+            fechas.append(fecha_objetivo.strftime("%d/%m/%Y"))
+            fecha_objetivo+=datetime.timedelta(days=15)
+    elif frecuencia=='semanal':
+        dias_semana = {'lunes': 0, 'martes': 1, 'miércoles': 2, 'jueves': 3, 'viernes': 4, 'sábado': 5}
+        if vencimiento not in dias_semana:
+            raise ValueError("El día de la semana debe ser uno de: 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'")
+        else:
+            dia_objetivo = dias_semana[vencimiento]
+        fechas = []
+        if int(fecha_actual.weekday()) < dia_objetivo:
+            fecha_actual+=datetime.timedelta(weeks=1)
+            while fecha_actual.weekday() != dia_objetivo:
+                    fecha_actual += datetime.timedelta(days=1)
+        elif int(fecha_actual.weekday()) > dia_objetivo:
+            while fecha_actual.weekday() != dia_objetivo:
+                    fecha_actual += datetime.timedelta(days=1)
+            fecha_actual+=datetime.timedelta(weeks=1)
+        for _ in range(int(cuotas)):      
+            fechas.append(fecha_actual.strftime("%d/%m/%Y"))
+            fecha_actual+=datetime.timedelta(months=1)
+
+def crear_visitas(data):
+    st.session_state['visitas']=login.load_data(st.secrets['urls']['visitas'])
+    fechas=generar_fechas_prestamos()
+    for fecha in fechas:
+        nueva_visita=[len(st.session_state['visitas'])+1,
+                      'cobranza',
+                      st.session_state['usuario'],
+                      data['nombre'],
+                      fecha,
+                      ''
+                      ]
+        #primero vamos a ver que tan necesario es crear la visita antes del vencimiento de una cobranza
+def crear_cobranzas(data):
+    if type(fecha)==str:
+        fecha=datetime.srtptime(fecha, "%d/%m/%Y")
+    st.session_state['cobranzas']=login.load_data(st.secrets['urls']['cobranzas'])
+    fechas=generar_fechas_prestamos(data['fecha'],data['tipo'], data['cantidad'],data['vence dia'])
+    i=0
+    for fecha in fechas:
+        nueva_cobranza=[
+            len(st.session_state['cobranzas'])+1,
+            clientes[clientes.nombre==data['nombre']]['dni'],
+            st.session_state['usuario'],
+            data['nombre'],
+            i,
+            data['monto'],
+            data['monto'],
+            0.0,
+            0.0,
+            fecha,
+            fecha+datetime.timedelta(weeks=7),
+            'Pendiente de Pago'
+            ]
+        i+=1
+        login.append_data(nueva_cobranza,st.secrets['ids']['cobranzas'])
+def egreso_caja(data):
+    st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
+    caja=st.session_state["mov"]
+    mov=[
+        data['fecha'],
+        f"PLAN {data['cantidad']} CUOTAS DE {data['capital']}",
+        0,
+        data['capital'],
+        -data['capital'],
+        caja['saldo'].sum()-data['capital']
+        ]
+    login.append_data(mov,st.secrets['ids']['flujo_caja'])
+def reporte_venta(data):
+    st.session_state["repo_ventas"]=login.load_data(st.secrets['urls']['repo_ventas'])
+    clientes=login.load_data(st.secrets['urls']['clientes'])
+    cliente=clientes[clientes['nombre']==data['nombre']]
+    venta=[
+        st.session_state['usuario'],
+        cliente['dni'],
+        data['nombre'],
+        data['id'],
+        data['cantidad'],
+        data['capital']
+        ]
+    login.append_data(venta,st.secrets['ids']['repo_ventas'])
+
+
+
+
+
 # Página de gestión de préstamos
-elif st.session_state["page"] == "gestionar_prestamo":
+if st.session_state["page"] == "gestionar_prestamo":
     st.title("Crear Prestamo")
 
     # Si estamos editando un préstamo, cargar datos existentes
@@ -303,11 +322,11 @@ elif st.session_state["page"] == "gestionar_prestamo":
         if st.session_state["nro"] is None:
             new(nuevo_prestamo)
         else:
-            # Editar préstamo existente
-            st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo
-            #login.historial(st.session_state["prestamos"].iloc[st.session_state["nro"]],'edicion_prestamo_viejo')
+            #Editar préstamo existente
+            st.session_state["prestamos"].loc['nro'==st.session_state["nro"]] = nuevo_prestamo
             save(st.session_state["prestamos"])
-            #login.historial(nuevo_prestamo,'edicion_prestamo_nuevo')
+            egreso_caja(nuevo_prestamo)
+            reporte_venta(nuevo_prestamo)
         st.session_state["page"] = "main"
         st.rerun()
 
