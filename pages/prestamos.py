@@ -220,25 +220,25 @@ def egreso_caja(data):
     st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
     caja=st.session_state["mov"]
     mov=[
-        data['fecha'],
-        f"PLAN {data['cantidad']} CUOTAS DE {data['capital']}",
+        data[1],
+        f"PLAN {data['cantidad']} CUOTAS DE {data[4]}",
         0,
-        data['capital'],
-        -data['capital'],
-        caja['saldo'].sum()-data['capital']
+        data[4],
+        -data[4],
+        caja['saldo'].sum()-data[4]
         ]
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 def reporte_venta(data):
     st.session_state["repo_ventas"]=login.load_data(st.secrets['urls']['repo_ventas'])
     clientes=login.load_data(st.secrets['urls']['clientes'])
-    cliente=clientes[clientes['nombre']==data['nombre']]
+    cliente=clientes[clientes['nombre']==data[2]]
     venta=[
         st.session_state['usuario'],
         cliente['dni'],
-        data['nombre'],
-        data['id'],
-        data['cantidad'],
-        data['capital']
+        data[2],
+        data[0],
+        data[3],
+        data[4]
         ]
     login.append_data(venta,st.secrets['ids']['repo_ventas'])
 
