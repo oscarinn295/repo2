@@ -157,7 +157,7 @@ def generarLogin():
                     guardar_log_usuario()  # Registrar el inicio de sesión en logs
                 else:
                     st.error("Usuario o clave inválidos")
-            st.switch_page('inicio.py')
+                    st.switch_page('inicio.py')
 
 
 from datetime import datetime
