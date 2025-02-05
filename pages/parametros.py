@@ -43,11 +43,11 @@ if not df.empty:
         with st.container(border=True):
             col1, col2, col3 = st.columns([4, 1, 1])
             with col1:
-                st.write(f"**{row['Parametro']}**")
+                st.write(f"**{row['parametro']}**")
             with col2:
                 nuevo_valor = st.number_input(
                     "Valor",
-                    value=row["Valor"],
+                    value=row["valor"],
                     key=f"valor_{idx}"
                 )
             with col3:
