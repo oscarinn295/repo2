@@ -6,6 +6,8 @@ import streamlit as st
 import login
 from datetime import date
 st.session_state["prestamos"] = login.load_data(st.secrets['urls']['prestamos'])
+st.session_state['en_mora']=login.load_data(st.secrets['urls']['en_mora'])
+st.session_state['pendiente']=login.load_data(st.secrets['urls']['pendientes'])
 login.generarLogin()
 # ID de la carpeta en Google Drive
 DRIVE_FOLDER_ID = st.secrets['ids']['imagenes']
@@ -24,14 +26,12 @@ def save(df):
 
 def upload_to_drive(image_path, folder_id):
     with open(image_path, "rb") as image_file:
-        files = {"image": (image_path, image_file, "image/jpeg")}
+        files = {"file": (image_path, image_file, "image/png")}
         data = {"folderId": folder_id}
         response = requests.post(UPLOAD_URL, files=files, data=data)
 
-    if response.status_code == 200:
-        response_data = response.json()
-        return response_data.get("url") if response_data.get("status") == "success" else None
-    return None
+    response_data = response.json()
+    return response_data.get("url") 
 
 def convert_drive_url(url):
     clean_url = url.split('?')[0]
@@ -63,57 +63,49 @@ def recargos(cobranza):
 
 
 
-def registrar():
-    with st.form("form_registro"):
-        medio_pago = st.selectbox('Seleccione una opción', ['Seleccione una opción', 'efectivo', 'transferencia'])
-        pago_total = st.checkbox(label='Pago Total')
-        monto = st.number_input("Monto", min_value=0.0, step=1000.0, value=st.session_state['dato']['monto'] if pago_total else 0.0)
-        comprobante = ""
+def registrar(cobranza):
+    medio_pago = st.selectbox('Seleccione una opción', ['Seleccione una opción', 'efectivo', 'transferencia'],key=f'medio_{cobranza['id']}')
+    pago_total=st.checkbox(label='Pago Total',key=f'total_{cobranza['id']}')
+    if pago_total:
+        st.write(cobranza['monto_recalculado_mora'])
+        monto=cobranza['monto_recalculado_mora']
+    else:
+        monto = st.number_input("Monto", min_value=0.0, step=1000.0 ,key=f'monto_{cobranza['id']}')
+    comprobante = ""
 
-        if medio_pago == 'transferencia':
-            uploaded_file = st.file_uploader("Sube una imagen", type=["jpg", "png", "jpeg"])
-            if uploaded_file and st.button('Confirmar subida'):
-                temp_path = f"./{uploaded_file.name}"
-                with open(temp_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+    if medio_pago == 'transferencia':
+        uploaded_file = st.file_uploader("Sube una imagen", type=["jpg", "png", "jpeg"],key=f'file_{cobranza['id']}')
+        if uploaded_file and st.button('Confirmar subida'):
+            temp_path = f"./{uploaded_file.name}"
+            with open(temp_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
 
-                comprobante = upload_to_drive(temp_path, DRIVE_FOLDER_ID)
-                if comprobante:
-                    st.success("Imagen subida correctamente")
-                else:
-                    st.error("Error al subir la imagen")
-
-        registrar = st.form_submit_button("Registrar")
-        volver = st.form_submit_button("Volver")
-
-        if volver:
-            st.session_state["page"] = 'main'
-            st.rerun()
-
-        if registrar:
-            reg = st.session_state['dato']
+            comprobante = upload_to_drive(temp_path, DRIVE_FOLDER_ID)
+            if comprobante:
+                st.success("Imagen subida correctamente")
+            else:
+                st.error("Error al subir la imagen")
+        if st.button("Registrar", key=f'registrar_{cobranza["id"]}'):
             if medio_pago != 'Seleccione una opción' and monto > 0:
-                actualizacion = {
-                    'id': reg['id'],
-                    'vendedor/cobrador': reg['vendedor/cobrador'],
-                    'nombre': reg['nombre'],
-                    'n_cuota': reg['n_cuota'],
-                    'monto': reg['monto'],
-                    'monto_mecalculado_mora': reg['monto_mecalculado_mora'],
-                    'pago': monto,
-                    'redondeo': 0.0,
-                    'vencimiento': reg['vencimiento'],
-                    'estado': 'Abonado',
-                    'comprobante': comprobante
-                }
-                st.session_state['cobranzas'].loc[st.session_state['index']] = pd.Series(actualizacion)
+                actualizacion = [
+                                monto,
+                                0.0,
+                                'Abonado',
+                                comprobante
+                ]
+                st.session_state["cobranzas"].loc[
+                    st.session_state["cobranzas"]['id']==cobranza['id'],
+                    ['pago', 'redondeo', 'estado', 'comprobante']
+                    ]=actualizacion
                 save(st.session_state['cobranzas'])
-                st.session_state["page"] = 'main'
                 st.rerun()
             else:
                 st.warning('Faltan datos')
-
-
+def no_abono(cobranza):
+    st.session_state["cobranzas"].loc[st.session_state["cobranzas"]['id']==cobranza['id'],'estado']='no abono'
+    save(st.session_state['cobranzas'])
+    cobranza['vencimiento']=cobranza['vencimiento'].strftime("%Y-%m-%d")
+    login.append_data(cobranza.values.tolist(),st.secrets['ids']['en_mora'])
 
 def update_data(index, action, value=None):
     df = st.session_state["cobranzas"]
@@ -122,6 +114,7 @@ def update_data(index, action, value=None):
     save(df)
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
+st.session_state['cobranzas']['id'] = pd.to_numeric(st.session_state['cobranzas']['id'], errors='coerce').astype('Int64')
 def display_table(search_query=""):
     st.subheader("Cobranzas")
     df = st.session_state["cobranzas"]
@@ -158,17 +151,19 @@ def display_table(search_query=""):
                     st.write(f"{row['estado']}")
                 with col8:
                     if pd.notna(row["comprobante"]):
-                        image_url = convert_drive_url(row["comprobante"])
-                        st.write("Comprobante:")
-                        st.image(image_url, width=100)
-                        st.markdown(f'[Descargar Comprobante]({image_url})', unsafe_allow_html=True)
+                        st.write(f"{row['comprobante']}")
+                        #image_url = convert_drive_url(row["comprobante"])
+                        #st.write("Comprobante:")
+                        #st.image(image_url, width=100)
+                        #st.markdown(f'[Descargar Comprobante]({image_url})', unsafe_allow_html=True)
                     else:
-                        option = st.selectbox("", ["Seleccionar...", "Registrar pago", "No abono"], key=f"action_{idx}")
-                        if option == "Registrar pago":
-                            st.session_state['page'] = 'registrar'
-                            st.session_state['dato'] = row.to_dict()
-                            st.session_state['index'] = idx
-                            st.rerun()
+                        with st.expander('actualizar'):
+                            with st.popover("Registrar pago"):
+                                registrar(row)
+                            if st.button("No abono",key=f"no_{row['id']}"):
+                                no_abono(row)
+                                st.rerun()
+
     else:
         st.warning("No se encontraron resultados.")
     # Controles de paginación
@@ -214,5 +209,6 @@ with col3:
         if reset:
                 querys=[]
 display_table()
+st.dataframe(st.session_state['en_mora'])
 with st.expander('Ver todos los datos'):
     st.dataframe(load())

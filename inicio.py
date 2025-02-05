@@ -28,4 +28,7 @@ if "morosos" not in st.session_state:
     st.session_state["morosos"] = login.load_data(st.secrets['urls']['repo_morosos'])
 if 'repo_ventas' not in st.session_state:
     st.session_state['repo_ventas']=login.load_data(st.secrets['urls']['repo_ventas'])
-
+if 'en_mora' not in st.session_state:
+    st.session_state['en_mora']=login.load_data(st.secrets['urls']['en_mora'])
+if 'pendiente' not in st.session_state:
+    st.session_state['pendiente']=login.load_data(st.secrets['urls']['pendientes'])
