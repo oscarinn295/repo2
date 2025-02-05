@@ -14,8 +14,6 @@ textColor="#FFFFFF"
 enableXsrfProtection = false
 headless = true
 
-[ui]
-wideMode = true
 
 
 [global]

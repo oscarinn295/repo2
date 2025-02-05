@@ -1,10 +1,12 @@
 import streamlit as st
+st.set_page_config(layout='wide')
 import login
 import pandas as pd
 st.title("Pagina administrativa de GrupoGon!")
 login.generarLogin()
 st.text("Esto es una demo de la nueva página de gestión de clientes y algunos datos financieros.")
 st.text("Hecho por Oscar Molinas.")
+
 
 
 # Inicializar las bases de datos
