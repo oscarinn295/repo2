@@ -101,6 +101,9 @@ def display_table(search_query=""):
         df = df[
             df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)
         ]
+    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+        df=df[df['vendedor']==st.session_state['usuario']]
+
     # Configuración de paginación
     ITEMS_POR_PAGINA = 10
     # Paginación
@@ -116,12 +119,13 @@ def display_table(search_query=""):
                 with col1:
                     st.write(f"**Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
                     st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
-                with st.popover(f'✏️ Editar'):
-                        editar(row)
-                with col3:
-                    if st.button("🗑️Eliminar", key=f"delete_{row['nro']}"):
-                        delete_client(idx)
-                        st.rerun()
+                if st.session_state['user_data']['permisos'].iloc[0]=='admin':
+                    with st.popover(f'✏️ Editar'):
+                            editar(row)
+                    with col3:
+                        if st.button("🗑️Eliminar", key=f"delete_{row['nro']}"):
+                            delete_client(idx)
+                            st.rerun()
     else:
         st.warning("No se encontraron resultados.")
     # Controles de paginación
@@ -153,9 +157,10 @@ def display_table(search_query=""):
 st.title("Clientes")
 col1,col2,col3,col4=st.columns(4)
 with col4:
-    # Botón para crear un nuevo cliente
-    with st.popover("Crear cliente"):
-        crear()
+    if st.session_state['user_data']['permisos'].iloc[0]=='admin':
+        # Botón para crear un nuevo cliente
+        with st.popover("Crear cliente"):
+            crear()
 with col1:
     # Botón para reiniciar datos
     if st.button("Reiniciar datos"):

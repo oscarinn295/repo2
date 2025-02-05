@@ -1,9 +1,11 @@
+
 import pandas as pd
 import requests
 import re
 import streamlit as st
 import login
 from datetime import date
+st.session_state["prestamos"] = login.load_data(st.secrets['urls']['prestamos'])
 login.generarLogin()
 # ID de la carpeta en Google Drive
 DRIVE_FOLDER_ID = st.secrets['ids']['imagenes']
@@ -126,6 +128,8 @@ def display_table(search_query=""):
 
     if search_query:
         df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
+    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+        df=df[df['vendedor/cobrador']==st.session_state['usuario']]
     # Configuración de paginación
     ITEMS_POR_PAGINA = 10
     # Paginación

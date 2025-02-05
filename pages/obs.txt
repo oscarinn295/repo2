@@ -1,5 +1,5 @@
-
 comisiones:
+    añadir sitema de comisiones compartidas
     se comisiona por venta y por cobranzas
     las comisiones por ventas no tienen piso
     por cobranza es:
@@ -11,14 +11,23 @@ comisiones:
     pasado eso
     hasta 5 millones:5%
     pasas eso cobrás 5.5%
+    
+revisar si es que funciona o no
 si saco un prestamo semanal se paga el mismo dia de la semana que se registra
 si saco un prestamo quincenal se paga de acá a 2 semanas
+
 mensual: 10, 20 y 30 a eleccion del cliente
     si el dia del registro es antes del vencimiento se paga ese mismo mes
     solo en casos excepcionales se para el mes siguiente
-eliminamos el registro de visitas
-cuando se crea un prestamo solo se crean los dias de cobranza
+
 si pasó la fecha de cobranza y no se actualizó llevar a un apartado de pendientes de actualización
-si se registra como no abono, se va a morosos, y queda marcada la cobranza, si se registra el pago desaparece el registro de la cobranza
-tambien eliminamos el reagendar visitas
-añadimos fecha de nacimiento en crear cliente,apellido, nombre de vendedor, scoring, mail
+si se registra como no abono, se va a morosos, y queda marcada la cobranza, si se registra el pago desaparece el registro de la cobranzas
+permisos de usuario: admin y cobrador:
+    jhony y guille tienen permisos de administrador
+    el resto solo puede registrar pagos de las cobranzas de que le tocan, ver los creditos que generó, sus clientes, sus morosos y el simulador de creditos
+
+en la vista de cobranzas desglozar que signiifica cada cantidad que aporta al monto a pagar por cuota. amortización
+quieren ver cuanto juntaron de amortización e intereses por mes
+tambien quiere una planilla de gastos
+añadir alguna de forma de poder identificar si un vendedor se hizo cargo de algun movimiento con algún cliente ajeno
+ojo con el historial, le estan haciendo mucho incapié, preparar plantillas de mensaje completas para cada tipo de movimiento

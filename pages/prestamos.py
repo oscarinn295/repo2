@@ -117,6 +117,7 @@ def reporte_venta(data):
         ]
     login.append_data(venta,st.secrets['ids']['repo_ventas'])
 
+vendedores=login.load_data1(st.secrets['urls']['usuarios'])['usuario'].values.tolist()
 
 def crear():
     fecha =  date.today()
@@ -152,6 +153,7 @@ def crear():
         capital = st.number_input("Capital*", min_value=0.0, step=1000.0,key='capital')
         TNM=st.number_input('T.N.M*', min_value=0.0, step=0.1,key='tnm')
         monto=st.number_input('Monto Cuota',min_value=0.0, step=1000.0,key='monto')
+        vendedor=st.selectbox('vendedor',vendedores)
     obs=st.text_input('Observaciones',key='obss')
     # Botón de acción dentro del formulario
 
@@ -160,6 +162,7 @@ def crear():
             max(st.session_state['prestamos']['nro'],default=0) + 1,
             str(fecha),
             nombre_cliente,
+            vendedor,
             cantidad_cuotas,
             capital,
             tipo_prestamo,
@@ -232,6 +235,7 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
         capital = st.number_input("Capital*", min_value=0.0, step=1000.0, value=float(capital),key=f'capitall_{prestamo['nro']}')
         TNM=st.number_input('T.N.M*', min_value=0.0, step=0.1,value=float(TNM),key=f'tnmm_{prestamo['nro']}')
         monto=st.number_input('Monto Cuota',min_value=0.0, step=1000.0,value=float(monto),key=f'monto_{prestamo['nro']}')
+        vendedor=st.selectbox('vendedor',vendedores,key=f'vendedor_{prestamo['nro']}')
     obs=st.text_input('Observaciones',value=obs,key=f'obss_{prestamo['nro']}')
     # Botón de acción dentro del formulario
 
@@ -240,6 +244,7 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
             max(st.session_state['prestamos']['nro'],default=0) + 1,
             str(fecha),
             nombre_cliente,
+            vendedor,
             cantidad_cuotas,
             capital,
             tipo_prestamo,
@@ -266,6 +271,9 @@ def display_table(search_query=None):
             df = df[df.apply(lambda row: search_query[0].lower() in row.to_string().lower(), axis=1)]
         else:
             df[df['nombre']==search_query[0] and df['estado']==search_query[1]]
+    else:
+        if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+            df=df[df['vendedor']==st.session_state['usuario']]
     # Configuración de paginación
     ITEMS_POR_PAGINA = 10
     # Paginación
@@ -282,20 +290,21 @@ def display_table(search_query=None):
                 with col1:
                     st.write(f"**Fecha:** {row['fecha']} |**Capital:** {row['capital']}")
                     st.write(f"**Cliente:** {row['nombre']}")
-                with col2:
-                    new_estado = st.selectbox(
-                        "Estado*", 
-                        ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
-                        "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
-                        index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
-                            "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
-                        key=f"estado_{idx}"
-                    )
-                    # Agregar cambios si el estado cambió
-                    if new_estado != row["estado"]:
-                        updated_rows.append((idx, new_estado))
-                    with st.popover(f'✏️ Editar'):
-                        editar(row)
+                if st.session_state['user_data']['permisos'].iloc[0]=='admin':
+                    with col2:
+                        new_estado = st.selectbox(
+                            "Estado*", 
+                            ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
+                            "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
+                            index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
+                                "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
+                            key=f"estado_{idx}"
+                        )
+                        # Agregar cambios si el estado cambió
+                        if new_estado != row["estado"]:
+                            updated_rows.append((idx, new_estado))
+                        with st.popover(f'✏️ Editar'):
+                            editar(row)
 
         # Actualizar los cambios en el DataFrame
         for index, new_estado in updated_rows:
@@ -332,9 +341,10 @@ col1,col2,col3=st.columns(3)
 with col1:
     st.title("Prestamos")
 with col3:
-    # Botón para crear un nuevo préstamo
-    with st.popover("Crear Préstamo",use_container_width=False,icon=f'💲'):
-        crear()
+    if st.session_state['user_data']['permisos'].iloc[0]=='admin':
+        # Botón para crear un nuevo préstamo
+        with st.popover("Crear Préstamo",use_container_width=False,icon=f'💲'):
+            crear()
 with st.container(border=True):
     st.subheader("Filtros")
     lista=['seleccione un cliente']

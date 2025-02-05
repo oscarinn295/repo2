@@ -4,7 +4,6 @@ import streamlit as st
 import pandas as pd
 
 
-
 # Cargar valores desde secrets.toml
 api = st.secrets["api"]['dfs']
 url=st.secrets['urls']['usuarios']
@@ -48,6 +47,9 @@ hide_menu_style = """
 st.markdown(hide_menu_style, unsafe_allow_html=True)
 
 
+
+
+
 # Validación simple de usuario y clave con un archivo CSV
 def validarUsuario(usuario, clave):
     """
@@ -67,7 +69,7 @@ def validarUsuario(usuario, clave):
         st.error(f"Error al validar usuario: {e}")
     return False
 
-def generarMenu(usuario):
+def generarMenu(usuario,permiso):
     """
     Genera el menú en la barra lateral dependiendo del usuario.
     :param usuario: Usuario autenticado
@@ -76,7 +78,7 @@ def generarMenu(usuario):
         try:
             dfusuarios = load_data1(url)
             dfUsuario = dfusuarios[dfusuarios['usuario'] == usuario]
-            nombre = dfUsuario['nombre'].values[0]
+            nombre = dfUsuario['nombre'].iloc[0]
 
             # Bienvenida al usuario
             st.write(f"### Bienvenido/a, **{nombre}**")
@@ -91,21 +93,26 @@ def generarMenu(usuario):
             st.page_link("pages/simulador_creditos.py", label="Simulador Créditos", icon=":material/sell:")
 
             # Administración
-            st.subheader("Administración")
-            st.page_link("pages/movimientos_caja.py", label="Movimientos de Caja", icon=":material/sell:")
-            st.page_link("pages/parametros.py", label="Parámetros", icon=":material/group:")
+            if permiso=='admin':
+                st.subheader("Administración")
+                st.page_link("pages/movimientos_caja.py", label="Movimientos de Caja", icon=":material/sell:")
+                st.page_link("pages/parametros.py", label="Parámetros", icon=":material/group:")
 
             # Reportes
             st.subheader("Reportes")
-            st.page_link('pages/repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
-            st.page_link('pages/repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
-            st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
-            st.page_link('pages/repo_cobranzas.py', label="Reporte Cobranzas", icon=":material/group:")
-            st.page_link('pages/repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
-
+            if permiso!='admin':
+                st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
+            else:
+                st.page_link('pages/repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
+                st.page_link('pages/repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
+                st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
+                st.page_link('pages/repo_cobranzas.py', label="Reporte Cobranzas", icon=":material/group:")
+                st.page_link('pages/repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
             # Botón de cierre de sesión
             if st.button("Salir"):
-                st.session_state.clear()
+                del st.session_state['usuario']
+                st.switch_page('inicio.py')
+                
 
         except FileNotFoundError:
             st.error("El archivo 'usuarios.csv' no se encontró.")
@@ -130,11 +137,12 @@ def guardar_log_usuario():
     return {"status": "error", "message": "No hay usuario en sesión"}
 
 def generarLogin():
+    usuarios=load_data1(st.secrets['urls']['usuarios'])
     """
     Genera la ventana de login o muestra el menú si el login es válido.
     """
     if 'usuario' in st.session_state:
-        generarMenu(st.session_state['usuario'])  # Muestra el menú si ya está autenticado
+        generarMenu(st.session_state['usuario'],st.session_state['user_data']['permisos'].iloc[0])  # Muestra el menú si ya está autenticado
     else:
         with st.form('frmLogin'):
             parUsuario = st.text_input('Usuario')
@@ -142,10 +150,15 @@ def generarLogin():
             if st.form_submit_button('Ingresar'):
                 if validarUsuario(parUsuario, parPassword):
                     st.session_state['usuario'] = parUsuario
+                    
+                    usuario=usuarios[usuarios['usuario']==st.session_state['usuario']]
+                    st.session_state['user_data']=usuario
+
                     guardar_log_usuario()  # Registrar el inicio de sesión en logs
                     st.rerun()
                 else:
                     st.error("Usuario o clave inválidos")
+            st.switch_page('inicio.py')
 
 
 from datetime import datetime

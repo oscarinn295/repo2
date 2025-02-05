@@ -30,7 +30,7 @@ def display_table(search_query=""):
         st.warning("No se encontraron resultados.")
 
 
-st.title("Morosos, faltan datos!!!!")
+st.title("Morosos, datos de ejemplo")
 display_table()
 
 if st.session_state['usuario']=="admin":
