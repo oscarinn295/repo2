@@ -155,7 +155,6 @@ def generarLogin():
                     st.session_state['user_data']=usuario
 
                     guardar_log_usuario()  # Registrar el inicio de sesión en logs
-                    st.rerun()
                 else:
                     st.error("Usuario o clave inválidos")
             st.switch_page('inicio.py')
