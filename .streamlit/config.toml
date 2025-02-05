@@ -1,6 +1,8 @@
 [client]
 showSidebarNavigation = false
-
+toolbarMode = "minimal"
+caching = "true"
+displayEnabled = true
 
 [theme]
 base="dark"
@@ -13,7 +15,6 @@ textColor="#FFFFFF"
 [server]
 enableXsrfProtection = false
 headless = true
-
 
 
 [global]
