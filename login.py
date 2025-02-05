@@ -144,20 +144,23 @@ def generarLogin():
     if 'usuario' in st.session_state:
         generarMenu(st.session_state['usuario'],st.session_state['user_data']['permisos'].iloc[0])  # Muestra el menú si ya está autenticado
     else:
-        with st.form('frmLogin'):
-            parUsuario = st.text_input('Usuario')
-            parPassword = st.text_input('Password', type='password')
-            if st.form_submit_button('Ingresar'):
-                if validarUsuario(parUsuario, parPassword):
-                    st.session_state['usuario'] = parUsuario
-                    
-                    usuario=usuarios[usuarios['usuario']==st.session_state['usuario']]
-                    st.session_state['user_data']=usuario
+        try:
+            
+                with st.form('frmLogin'):
+                    parUsuario = st.text_input('Usuario')
+                    parPassword = st.text_input('Password', type='password')
+                    if st.form_submit_button('Ingresar'):
+                        if validarUsuario(parUsuario, parPassword):
+                            st.session_state['usuario'] = parUsuario
+                            
+                            usuario=usuarios[usuarios['usuario']==st.session_state['usuario']]
+                            st.session_state['user_data']=usuario
 
-                    guardar_log_usuario()  # Registrar el inicio de sesión en logs
-                else:
-                    st.error("Usuario o clave inválidos")
-                    st.switch_page('inicio.py')
+                            guardar_log_usuario()  # Registrar el inicio de sesión en logs
+                        else:
+                            st.error("Usuario o clave inválidos")
+        except:
+            st.switch_page('inicio.py')
 
 
 from datetime import datetime
