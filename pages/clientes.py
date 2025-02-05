@@ -9,7 +9,7 @@ def load():
     return login.load_data(url)
 
 def new(datos):
-    login.append_data(idc,datos)
+    login.append_data(datos,idc)
     st.session_state['clientes']=load()
 def save(df):
     login.save_data(idc,df)
@@ -23,8 +23,75 @@ if 'clientes' not in st.session_state:
     st.session_state['clientes']=load() 
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
+vendedores=login.load_data1(st.secrets['urls']['usuarios'])['usuario'].values.tolist()
 # Función para mostrar la tabla con filtro de búsqueda
-# Función para mostrar la tabla con filtro de búsqueda
+def editar(cliente):
+    st.title("Editar Cliente: ")
+    st.session_state["dni"] = cliente["dni"]
+    st.session_state["nombre"] = cliente["nombre"]
+    st.session_state["direccion"] = cliente["direccion"]
+    st.session_state["celular"] = cliente["celular"]
+    st.session_state["vendedor"] = cliente["vendedor"]
+    st.session_state['scoring']= cliente['scoring']
+    st.session_state['fecha_nac']=cliente['fecha_nac']
+    st.session_state['mail']=cliente['mail']
+
+    col1,col2=st.columns(2)
+    with col1:
+        dni = st.text_input("DNI", value=st.session_state.get("dni", ""),key=f'dni_{cliente['nro']}')
+        nombre = st.text_input("Nombre", value=st.session_state.get("nombre", ""),key=f'nombre_{cliente['nro']}')
+        fecha_nac=st.date_input("Fecha", value=st.session_state.get("fecha_nac", ""),key=f'fecha_{cliente['nro']}')
+        vendedor=st.selectbox('vendedor',vendedores,key=f'vendedor_{cliente['nro']}')
+    with col2:
+        direccion = st.text_input("Dirección", value=st.session_state.get("direccion", ""),key=f'direccion_{cliente['nro']}')
+        celular = st.text_input("Celular", value=st.session_state.get("celular", ""),key=f'celular_{cliente['nro']}')
+        mail=st.text_input("Mail", value=st.session_state.get("mail", ""),key=f'mail_{cliente['nro']}')
+        scoring= st.text_input("Scoring", value=st.session_state.get("scoring", ""),key=f'scoring_{cliente['nro']}')
+
+    if st.button('guardar',key=f'guardar_{cliente['nro']}'):
+        # Actualizar cliente existente
+        idx = cliente['nro']
+        #login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_viejo')
+        st.session_state["clientes"].loc[st.session_state["clientes"]['nro']==idx, ['nombre','vendedor','scoring','direccion','fecha_nac','dni','celular','mail']] = [
+            nombre,vendedor,scoring, direccion,fecha_nac,dni, celular,mail
+        ]
+        #login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_nuevo')
+        save(st.session_state["clientes"])
+        st.success("cambios guardados")
+
+def crear():
+    st.title('Crear Cliente: ')
+    col1,col2=st.columns(2)
+    with col1:
+        dni = st.text_input("DNI")
+        nombre = st.text_input("Nombre")
+        fecha_nac=st.date_input("Fecha")
+        vendedor=st.selectbox('vendedor',vendedores)
+    with col2:
+        direccion = st.text_input("Dirección")
+        celular = st.text_input("Celular")
+        mail=st.text_input("Mail")
+        scoring= st.text_input("Scoring")
+    if st.button('guardar'):
+        nuevo_cliente =[max(st.session_state['clientes']['nro'])+1,
+                        nombre,
+                        vendedor,
+                        scoring,
+                        direccion,
+                        fecha_nac,
+                        dni,
+                        celular,
+                        mail
+                        ]
+        new(nuevo_cliente)
+        st.success('cliente guardado correctamente')
+    #login.historial(nuevo_cliente,'nuevo cliente')
+
+# Función para eliminar un cliente
+def delete_client(index):
+    st.session_state["clientes"].drop(index=index, inplace=True)
+    save(st.session_state["clientes"])
+    #login.historial(st.session_state["clientes"].loc[index],'borrado')
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
 
@@ -49,11 +116,8 @@ def display_table(search_query=""):
                 with col1:
                     st.write(f"**Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
                     st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
-                with col2:
-                    if st.button(f'✏️ Editar', key=f'edit_{idx}'):
-                        st.session_state["nro"] = row["nro"]  # Guardar el número del cliente
-                        st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
-                        st.rerun()
+                with st.popover(f'✏️ Editar'):
+                        editar(row)
                 with col3:
                     if st.button("🗑️Eliminar", key=f"delete_{row['nro']}"):
                         delete_client(idx)
@@ -83,102 +147,28 @@ def display_table(search_query=""):
             st.rerun()
 
 
-# Función para eliminar un cliente
-def delete_client(index):
-    st.session_state["clientes"].drop(index=index, inplace=True)
-    save(st.session_state["clientes"])
-    #login.historial(st.session_state["clientes"].loc[index],'borrado')
+
 
 # Página de lista de clientes
-if st.session_state["page"] == "main":
-    st.title("Gestión de Clientes")
+st.title("Clientes")
+col1,col2,col3,col4=st.columns(4)
+with col4:
+    # Botón para crear un nuevo cliente
+    with st.popover("Crear cliente"):
+        crear()
+with col1:
+    # Botón para reiniciar datos
+    if st.button("Reiniciar datos"):
+        st.session_state["clientes"] = load()
+with st.container(border=True):
     col1,col2=st.columns(2)
-    with col1:
-        # Botón para crear un nuevo cliente
-        if st.button("Crear Nuevo Cliente"):
-            st.session_state["nro"] = None  # No se está editando ningún cliente
-            st.session_state["page"] = "gestionar"  # Cambiar a la página de gestión
-            st.rerun()  # Forzar la redirección
     with col2:
-        # Botón para reiniciar datos
-        if st.button("Reiniciar datos"):
-            st.session_state["clientes"] = load()
-    # Barra de búsqueda
-    search_query = st.text_input("Buscar cliente (por cualquier campo)", key="search_query")
+        search_query = st.text_input("Buscar cliente", key="search_query")
     display_table(search_query)
     if st.button('Ver todos los datos'):
         st.dataframe(load())
 
-# Página de gestión de clientes
-elif st.session_state["page"] == "gestionar":
-    st.title("Gestión de Cliente")
-    if "clientes" not in st.session_state:
-        st.session_state["clientes"] = load()
 
-    def reset_form():
-        st.session_state['nro']=None
-        st.session_state["dni"] = ""
-        st.session_state["nombre"] = ""
-        st.session_state["direccion"] = ""
-        st.session_state["celular"] = ""
-        st.session_state["vendedor"] = ""
-
-    # Cargar datos del cliente en caso de edición
-    if st.session_state.get("nro") is not None:
-        cliente = st.session_state["clientes"].loc[
-            st.session_state["clientes"]["nro"] == st.session_state["nro"]
-        ].squeeze()
-        st.session_state["dni"] = cliente["dni"]
-        st.session_state["nombre"] = cliente["nombre"]
-        st.session_state["direccion"] = cliente["direccion"]
-        st.session_state["celular"] = cliente["celular"]
-        st.session_state["vendedor"] = cliente["vendedor"]
-    else:
-        reset_form()
-
-    # Formulario
-    st.title("Formulario de Cliente")
-    with st.form("Formulario Cliente"):
-        dni = st.text_input("DNI", value=st.session_state.get("dni", ""))
-        nombre = st.text_input("Nombre", value=st.session_state.get("nombre", ""))
-        direccion = st.text_input("Dirección", value=st.session_state.get("direccion", ""))
-        celular = st.text_input("Celular", value=st.session_state.get("celular", ""))
-        vendedor = st.text_input("Vendedor", value=st.session_state.get("vendedor", ""))
-
-        submit_button = st.form_submit_button("Guardar")
-
-    # Procesar el formulario
-    if submit_button:
-        if st.session_state["nro"] is None:
-            # Crear cliente nuevo
-            nuevo_cliente = pd.DataFrame([{
-                "nro":  max(st.session_state['clientes']['nro'])+1,
-                "dni": dni,
-                "nombre": nombre,
-                "direccion": direccion,
-                "celular": celular,
-                "vendedor": vendedor,
-            }])
-            st.session_state["clientes"] = pd.concat([st.session_state["clientes"], nuevo_cliente], ignore_index=True)
-            #login.historial(nuevo_cliente,'nuevo cliente')
-        else:
-            # Actualizar cliente existente
-            idx = st.session_state["nro"]
-            #login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_viejo')
-            st.session_state["clientes"].loc[idx, ["dni", "nombre", "direccion", "celular", "vendedor"]] = [
-                dni, nombre, direccion, celular, vendedor
-            ]
-            #login.historial(st.session_state['clientes'][st.session_state['clientes']['nro']==idx],'edicion_nuevo')
-        save(st.session_state["clientes"])
-        st.success("Cliente guardado.")
-        reset_form()
-        st.rerun()
-
-    # Botón para volver a la lista de clientes
-    if st.button("Volver"):
-        st.session_state["page"] = "main"  # Regresar a la página de lista
-        st.rerun()  # Forzar la redirección
-    
 if st.session_state['usuario']=="admin":
     st.title("subir nuevos datos")
     #concatenar o sobreescribir
@@ -197,12 +187,7 @@ if st.session_state['usuario']=="admin":
 
         # Mostrar los datos
         st.subheader("Vista previa de los datos:")
-        st.dataframe(df.head())  # Muestra las primeras filas
-
-        # Mostrar información adicional del DataFrame
-        st.subheader("Descripción estadística:")
-        st.write(df.describe())
-
+        st.dataframe(df)  # Muestra las primeras filas
         # Mostrar las columnas disponibles
         st.subheader("Columnas del archivo:")
         st.write(df.columns.tolist())

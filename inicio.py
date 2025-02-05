@@ -27,6 +27,5 @@ if "morosos" not in st.session_state:
 
 if 'repo_ventas' not in st.session_state:
     st.session_state['repo_ventas']=login.load_data(st.secrets['urls']['repo_ventas'])
-if 'visitas' not in st.session_state or not isinstance(st.session_state['visitas'], pd.DataFrame):
-    st.session_state['visitas'] = login.load_data(st.secrets['urls']['visitas'])
+
     

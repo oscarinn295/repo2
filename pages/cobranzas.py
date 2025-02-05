@@ -41,88 +41,27 @@ def convert_drive_url(url):
     
     return url  # Retorna la URL original si no es un enlace válido de Drive
 
-
-if 'page' not in st.session_state:
-    st.session_state['page'] = 'main'
 if 'cobranzas' not in st.session_state:
     st.session_state['cobranzas']=load()
-    
+cobranzas=st.session_state['cobranzas']
+prestamos=st.session_state['prestamos']
 
-def update_data(index, action, value=None):
-    df = st.session_state["cobranzas"]
-    if action == "estado":
-        df.at[index, "estado"] = value
-    elif action == "visita":
-        df.at[index, "visita"] = value
-    save(df)
-if 'pagina_actual' not in st.session_state:
-    st.session_state['pagina_actual'] = 1
-def display_table(search_query=""):
-    st.subheader("Cobranzas")
-    df = st.session_state["cobranzas"]
+def recargos(cobranza):
+    tipo_prestamo={
+    'mensual':300,
+    'semanal':400,
+    'quincenal':500
+    }
+    prestamo=prestamos[prestamos['nombre']==cobranza['nombre']]
+    diff=float((date.today()-cobranza['vencimiento']).days)
+    cobranza['monto_recalculado_mora']=tipo_prestamo[prestamo['tipo']]*diff+cobranza['monto']
+#cobranzas.apply(recargos,axis=1)
+#st.session_state['cobranzas']=cobranzas
+#save(cobranzas)
 
-    if search_query:
-        df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
-    # Configuración de paginación
-    ITEMS_POR_PAGINA = 10
-    # Paginación
-    total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
-    inicio = (st.session_state['pagina_actual'] - 1) * ITEMS_POR_PAGINA
-    fin = inicio + ITEMS_POR_PAGINA
-    df_paginado = df.iloc[inicio:fin]
-    if not df_paginado.empty:
-        for idx, row in df_paginado.iterrows():
-            with st.container(border=True):
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.write(f" **Vencimiento**:{row["vencimiento"].date()}")
-                    st.write(f"**Cuota**: {row['n_cuota']} | **Monto**: {row['monto']}")
-                    st.write(f"**Cliente**: {row['nombre']}")
-                with col2:
-                    option = st.selectbox("Acción", ["Seleccionar...", "Registrar pago", "Reprogramar visita", "No abono"], key=f"action_{idx}")
-                    if option == "Registrar pago":
-                        st.session_state['page'] = 'registrar'
-                        st.session_state['dato'] = row.to_dict()
-                        st.session_state['index'] = idx
-                        st.rerun()
-                with col3:
-                    if pd.notna(row["comprobante"]):
-                        image_url = convert_drive_url(row["comprobante"])
-                        st.write("Comprobante:")
-                        st.image(image_url, width=100)
-                        st.markdown(f'[Descargar Comprobante]({image_url})', unsafe_allow_html=True)
-    else:
-        st.warning("No se encontraron resultados.")
-    # Controles de paginación
-    with st.container(border=True):
-        col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-        with col_pag1:
-            if st.session_state['pagina_actual'] > 1:
-                if st.button("⬅ Anterior"):
-                    st.session_state['pagina_actual'] -= 1
-                    st.rerun()
-        with col_pag3:
-            if st.session_state['pagina_actual'] < total_paginas:
-                if st.button("Siguiente ➡"):
-                    st.session_state['pagina_actual'] += 1
-                    st.rerun()
-    # Contador de registros y selector de cantidad por página
-    with st.container(border=True):
-        st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
-        items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
-        if items_seleccionados != ITEMS_POR_PAGINA:
-            ITEMS_POR_PAGINA = items_seleccionados
-            st.session_state['pagina_actual'] = 1
-            st.rerun()
 
-if st.session_state["page"] == "main":
-    st.title("Lista de Cobranzas")
-    search_query = st.text_input("Buscar")
-    display_table(search_query)
-    if st.button('Ver todos los datos'):
-        st.dataframe(load())
 
-if st.session_state['page'] == 'registrar':
+def registrar():
     with st.form("form_registro"):
         medio_pago = st.selectbox('Seleccione una opción', ['Seleccione una opción', 'efectivo', 'transferencia'])
         pago_total = st.checkbox(label='Pago Total')
@@ -154,7 +93,6 @@ if st.session_state['page'] == 'registrar':
             if medio_pago != 'Seleccione una opción' and monto > 0:
                 actualizacion = {
                     'id': reg['id'],
-                    'dni': reg['dni'],
                     'vendedor/cobrador': reg['vendedor/cobrador'],
                     'nombre': reg['nombre'],
                     'n_cuota': reg['n_cuota'],
@@ -163,7 +101,6 @@ if st.session_state['page'] == 'registrar':
                     'pago': monto,
                     'redondeo': 0.0,
                     'vencimiento': reg['vencimiento'],
-                    'visita': reg['visita'],
                     'estado': 'Abonado',
                     'comprobante': comprobante
                 }
@@ -173,3 +110,105 @@ if st.session_state['page'] == 'registrar':
                 st.rerun()
             else:
                 st.warning('Faltan datos')
+
+
+
+def update_data(index, action, value=None):
+    df = st.session_state["cobranzas"]
+    if action == "estado":
+        df.at[index, "estado"] = value
+    save(df)
+if 'pagina_actual' not in st.session_state:
+    st.session_state['pagina_actual'] = 1
+def display_table(search_query=""):
+    st.subheader("Cobranzas")
+    df = st.session_state["cobranzas"]
+
+    if search_query:
+        df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
+    # Configuración de paginación
+    ITEMS_POR_PAGINA = 10
+    # Paginación
+    total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
+    inicio = (st.session_state['pagina_actual'] - 1) * ITEMS_POR_PAGINA
+    fin = inicio + ITEMS_POR_PAGINA
+    df_paginado = df.iloc[inicio:fin]
+    if not df_paginado.empty:
+        for idx, row in df_paginado.iterrows():
+            with st.container(border=True):
+                col1, col2, col3,col4,col5,col6,col7,col8 = st.columns(8)
+                with col1:
+                    st.write(f" **Vencimiento**: {row["vencimiento"].date()}")
+                with col2:
+                    st.write(f"Vendedor: {row['vendedor/cobrador']}")
+                    st.write(f"**Cliente**: {row['nombre']}")
+                with col3:
+                    st.write(f"**Cuota**: {row['n_cuota']}... **Monto**: {row['monto']}")
+                with col4:
+                    st.write(f"Monto Recalculado (+Mora): {row['monto_recalculado_mora']}")                    
+                with col5:
+                    st.write(f"Monto Pago: {row['pago']}")        
+                with col6:
+                    st.write(f"Redondeo: {row['redondeo']}")
+                with col7:
+                    st.write(f"{row['estado']}")
+                with col8:
+                    if pd.notna(row["comprobante"]):
+                        image_url = convert_drive_url(row["comprobante"])
+                        st.write("Comprobante:")
+                        st.image(image_url, width=100)
+                        st.markdown(f'[Descargar Comprobante]({image_url})', unsafe_allow_html=True)
+                    else:
+                        option = st.selectbox("", ["Seleccionar...", "Registrar pago", "No abono"], key=f"action_{idx}")
+                        if option == "Registrar pago":
+                            st.session_state['page'] = 'registrar'
+                            st.session_state['dato'] = row.to_dict()
+                            st.session_state['index'] = idx
+                            st.rerun()
+    else:
+        st.warning("No se encontraron resultados.")
+    # Controles de paginación
+    with st.container(border=True):
+        col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+        with col_pag1:
+            if st.session_state['pagina_actual'] > 1:
+                if st.button("⬅ Anterior"):
+                    st.session_state['pagina_actual'] -= 1
+                    st.rerun()
+        with col_pag3:
+            if st.session_state['pagina_actual'] < total_paginas:
+                if st.button("Siguiente ➡"):
+                    st.session_state['pagina_actual'] += 1
+                    st.rerun()
+    # Contador de registros y selector de cantidad por página
+    with st.container(border=True):
+        st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
+        items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA))
+        if items_seleccionados != ITEMS_POR_PAGINA:
+            ITEMS_POR_PAGINA = items_seleccionados
+            st.session_state['pagina_actual'] = 1
+            st.rerun()
+
+
+st.title("Cobranzas")
+querys=[]
+col1,col2,col3=st.columns(3)
+with col3:
+    with st.popover('Filtros'):
+        col1,col2=st.columns(2)
+        with col1:
+            st.write('Filtros')
+        with col2:
+            reset=st.button('Resetear los filtros')
+        desde=st.date_input('Desde')
+        hasta=st.date_input('Hasta')
+        vendedor=st.selectbox('Vendedor',[])
+        tipo_pago=st.selectbox('Tipo Pago',[])
+        condicion='preparar condicion'
+        if condicion:
+            querys.append([desde, hasta,vendedor,tipo_pago])
+        if reset:
+                querys=[]
+display_table()
+with st.expander('Ver todos los datos'):
+    st.dataframe(load())

@@ -86,9 +86,9 @@ def generarMenu(usuario):
             # Menú principal
             st.subheader("Préstamos")
             st.page_link("pages/clientes.py", label="Clientes", icon=":material/sell:")
+            st.page_link("pages/cobranzas.py", label="Cobranzas", icon=":material/sell:")
             st.page_link("pages/prestamos.py", label="Préstamos", icon=":material/sell:")
             st.page_link("pages/simulador_creditos.py", label="Simulador Créditos", icon=":material/sell:")
-            st.page_link("pages/cobranzas.py", label="Cobranzas", icon=":material/sell:")
 
             # Administración
             st.subheader("Administración")

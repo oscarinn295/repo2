@@ -336,7 +336,7 @@ if st.session_state["page"] == "gestionar_prestamo":
                 "tipo": tipo_prestamo,
                 "estado": estado,
                 "vence dia": venc_dia,
-                "producto asociado": producto_asociado,
+                "asociado": producto_asociado,
                 "tnm": TNM,
                 "monto": monto,
                 "obs": obs

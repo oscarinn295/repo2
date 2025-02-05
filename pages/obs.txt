@@ -21,3 +21,4 @@ cuando se crea un prestamo solo se crean los dias de cobranza
 si pasó la fecha de cobranza y no se actualizó llevar a un apartado de pendientes de actualización
 si se registra como no abono, se va a morosos, y queda marcada la cobranza, si se registra el pago desaparece el registro de la cobranza
 tambien eliminamos el reagendar visitas
+añadimos fecha de nacimiento en crear cliente,apellido, nombre de vendedor, scoring, mail
