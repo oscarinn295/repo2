@@ -1,17 +1,9 @@
 comisiones:
+    las comisiones de cada mes se pagan del 15 al 25 del mes siguiente
+    entonces contamos los movimientos por empleado desde el primero hasta el ultimo dia del mes, pero la operación automatica la hacce el primer dia del mes siguiente
     añadir sitema de comisiones compartidas
     se comisiona por venta y por cobranzas
     las comisiones por ventas no tienen piso
-    por cobranza es:
-        el objetivo mensual es de 3 millones y se paga un 2.5% de todo lo cobrado
-    por ventas:
-    hasta 2 millones: 3%
-    pasado eso
-    hasta 3.5 millones: 4%
-    pasado eso
-    hasta 5 millones:5%
-    pasas eso cobrás 5.5%
-    
 revisar si es que funciona o no
 si saco un prestamo semanal se paga el mismo dia de la semana que se registra
 si saco un prestamo quincenal se paga de acá a 2 semanas
@@ -21,13 +13,12 @@ mensual: 10, 20 y 30 a eleccion del cliente
     solo en casos excepcionales se para el mes siguiente
 
 si pasó la fecha de cobranza y no se actualizó llevar a un apartado de pendientes de actualización
-si se registra como no abono, se va a morosos, y queda marcada la cobranza, si se registra el pago desaparece el registro de la cobranzas
-permisos de usuario: admin y cobrador:
-    jhony y guille tienen permisos de administrador
-    el resto solo puede registrar pagos de las cobranzas de que le tocan, ver los creditos que generó, sus clientes, sus morosos y el simulador de creditos
 
 en la vista de cobranzas desglozar que signiifica cada cantidad que aporta al monto a pagar por cuota. amortización
 quieren ver cuanto juntaron de amortización e intereses por mes
 tambien quiere una planilla de gastos
-añadir alguna de forma de poder identificar si un vendedor se hizo cargo de algun movimiento con algún cliente ajeno
 ojo con el historial, le estan haciendo mucho incapié, preparar plantillas de mensaje completas para cada tipo de movimiento
+
+recopilar información sobre la plata en la calle
+lo que se tiene que recaudar, semanal y mensualmente
+preparar un mensaje de alerta por cada moroso/cobranza sin pagar

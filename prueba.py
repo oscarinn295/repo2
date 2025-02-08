@@ -1,99 +1,98 @@
-import requests
-import json
+import gspread
 import streamlit as st
+from google.oauth2.service_account import Credentials
 import pandas as pd
-from datetime import datetime
-import datetime as dt
-from dateutil.relativedelta import relativedelta
 
-# Cargar valores desde secrets.toml
-api = st.secrets["api"]['dfs']
-def load_data(URL):
-    return pd.read_excel(URL)
 
-def append_data(data:list,ID):
-    # Datos a insertar
-    payload = {
-        "fileId":ID,
-        "values": [data]
-    }
+def authenticate():
+    # Definir los alcances de la API
+    SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 
-    requests.post(api, data=json.dumps(payload))
+    # Cargar credenciales desde secrets.toml
+    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
+    return gspread.authorize(creds)
 
-#gestionar prestamos, funciones
-def generar_fechas_prestamos(fecha_registro:str, frecuencia:str, cuotas:int,vencimiento=None):
-    """
-    Genera fechas de pago a partir de las condiciones dadas.
-    :param fecha_registro: que originalmente es un datetime pero como que no me estaba dejando guardar datetime
-        así que primero son los strings que salen de eso
-        los string de fecha para este caso tienen que venir con este formato %d/%m/%Y
-    :param frecuencia: Frecuencia de pago ('semanal', 'quincenal', 'mensual')
-    :param cuotas: Número de cuotas
-    :vencimiento:10, 20 o 30
-    :return: Lista de fechas de pago (list of datetime.date)
-    """
-    fecha_registro=datetime.strptime(fecha_registro, "%d/%m/%Y")
-    fecha_actual=fecha_registro
-    fechas=[]
-    if frecuencia=='mensual':
-        if vencimiento is not None:
-            if int(fecha_registro.dt.day())<vencimiento:
-                fecha_objetivo=fecha_registro+ dt.timedelta(days=vencimiento-fecha_registro.dt.day())
-            elif int(fecha_registro.dt.day())>vencimiento:
-                fecha_objetivo=fecha_registro+relativedelta(months=1)- dt.timedelta(days=fecha_registro.dt.day()-vencimiento)
-        else:
-            fecha_objetivo=fecha_registro+relativedelta(months=1)
-        for _ in range(cuotas):
-            fechas.append(fecha_objetivo.strftime("%d/%m/%Y"))
-            fecha_objetivo+=relativedelta(months=1)
-    elif frecuencia=='quincenal':
-        for _ in range(cuotas):
-            fecha_actual+=dt.timedelta(weeks=2)
-            fechas.append(fecha_actual.strftime("%d/%m/%Y"))
-    elif frecuencia=='semanal':
-        for _ in range(int(cuotas)):
-            fecha_actual+=dt.timedelta(weeks=1)
-            fechas.append(fecha_actual.strftime("%d/%m/%Y"))
-    return fechas
+def get_worksheet(sheet_id):
+    """Obtiene la hoja de cálculo por su ID"""
+    client = authenticate()
+    spreadsheet = client.open_by_key(sheet_id)
+    return spreadsheet.worksheet("Sheet1")  # Puedes cambiar esto si usas una pestaña específica
 
-def crear_cobranzas(data,vencimiento=None):
-    st.session_state['cobranzas']=load_data(st.secrets['urls']['cobranzas'])
-    fechas=generar_fechas_prestamos(data[1],data[5], data[3],vencimiento)
-    i=0
-    for fecha in fechas:
-        if type(fecha)==str:
-            fecha=datetime.strptime(fecha, "%d/%m/%Y")
-        nueva_cobranza=[
-            int(st.session_state['cobranzas']['id'].max()+1)+i,
-            'test',
-            data[2],
-            i,
-            data[10],
-            data[10],
-            0.0,
-            0.0,
-            fecha.strftime("%d/%m/%Y"),
-            'Pendiente de Pago'
-            ]
-        i+=1
-        append_data(nueva_cobranza,st.secrets['ids']['cobranzas'])
+def delete_data(id_value,sheet_id ):
+    """Elimina una fila según el valor en la columna 'id'"""
+    worksheet = get_worksheet(sheet_id)
+    cell = worksheet.find(str(id_value))
+    if cell:
+        worksheet.delete_rows(cell.row)
+
+
+def save_data(id_value, column_name, new_value,sheet_id):
+    """Modifica un valor en una fila según el ID y el nombre de la columna"""
+    worksheet = get_worksheet(sheet_id)
+    col_labels = worksheet.row_values(1)  # Obtiene la primera fila con los nombres de columnas
+    if column_name not in col_labels:
+        print("Columna no encontrada")
+        return
+    col_index = col_labels.index(column_name) + 1  # Convertir a índice basado en 1
+    cell = worksheet.find(str(id_value))
+    if cell:
+        worksheet.update_cell(cell.row, col_index, new_value)
+
+
+def append_data(new_values,sheet_id):
+    """Añade una nueva fila al final del documento"""
+    worksheet = get_worksheet(sheet_id)
+    worksheet.append_row(new_values)
+
+def load_data(id):
+    def get_google_sheet(spreadsheet_id, range_name):
+        """Obtiene datos de una hoja de Google Sheets."""
+        client = authenticate()
+        sheet = client.open_by_key(spreadsheet_id).worksheet(range_name)
+        return sheet.get_all_values()
+
+    def gsheet2df(sheet_data):
+        """Convierte los datos obtenidos de Google Sheets en un DataFrame de Pandas."""
+        if not sheet_data:
+            st.error("No se encontraron datos en la hoja.")
+            return pd.DataFrame()
         
-nuevo_prestamo = [
-            0,
-            '04/02/2025',
-            'si',
-            10,
-            1000000,
-            'mensual',
-            'liquidado',
-            20,
-            'coso',
-            18,
-            100000,
-            '']
-data=nuevo_prestamo
-if st.button('guardar'):
-    crear_cobranzas(data)
+        header = sheet_data[0]  # Primera fila como encabezado
+        values = sheet_data[1:]  # Datos sin el encabezado
+        df = pd.DataFrame(values, columns=header)
+        return df
+
+    # Configuración de la hoja
+    SPREADSHEET_ID = id
+    RANGE_NAME = 'Sheet1'
+
+    # Obtener datos y convertirlos en DataFrame
+    sheet_data = get_google_sheet(SPREADSHEET_ID, RANGE_NAME)
+    return gsheet2df(sheet_data)
+st.session_state['clientes']=load_data(st.secrets['prueba_ids']['clientes'])
+def delete(index):
+    delete_data(index,st.secrets['prueba_ids']['clientes'])
+def save(id,column,data):
+    save_data(id,column,data,st.secrets['prueba_ids']['clientes'])
+def new(data):
+    append_data(data,st.secrets['prueba_ids']['clientes'])
+if st.button('modificar'):
+    mod='molinas'
+    save(0,'nombre',mod)
     st.rerun()
-cobranzas=load_data(st.secrets['urls']['cobranzas'])
-st.write(cobranzas)
+if st.button('borrar'):
+    delete('0')
+    st.rerun()
+if st.button('añadir'):
+    nuevo=['0',
+           'molinas, oscar alexander',
+           'test',
+           '0',
+           'coso',
+           '18-03-2025',
+           '39196960',
+           '3794273525',
+           'example@gmail.com']
+    new(nuevo)
+    st.rerun()
+st.dataframe(st.session_state['clientes'])

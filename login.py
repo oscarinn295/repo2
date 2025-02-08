@@ -1,52 +1,89 @@
-import requests
-import json
+import gspread
 import streamlit as st
+from google.oauth2.service_account import Credentials
 import pandas as pd
 
-
-# Cargar valores desde secrets.toml
-api = st.secrets["api"]['dfs']
-url=st.secrets['urls']['usuarios']
-idc=st.secrets['ids']['usuarios']
-def load_data(URL):
-    return pd.read_excel(URL)
-
-def load_data1(URL):
-    return pd.read_csv(URL)
-
-
-def append_data(data:list,ID):
-    # Datos a insertar
-    payload = {
-        "fileId":ID,
-        "values": [data]
-    }
-
-    requests.post(api, data=json.dumps(payload))
-
-def save_data(id: str, datos):
-    """
-    Sobrescribe toda la hoja con nuevos datos.
-    """
-    values = datos.values.tolist()
-    values.insert(0, datos.columns.tolist())  # Agrega encabezados
-
-    payload = {
-        "fileId": id,
-        "values": values,
-        "all": True  # Sobrescribir toda la hoja
-    }
-    requests.post(api, data=json.dumps(payload, default=str))
-
 # Ocultar el botón de Deploy con CSS
-hide_menu_style = """
-        <style>
-        #MainMenu {visibility: hidden;}
-        </style>
-        """
-st.markdown(hide_menu_style, unsafe_allow_html=True)
+st.markdown(
+    """
+    <style>
+    #MainMenu {visibility: hidden;}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+def authenticate():
+    """Autentica con Google Sheets y guarda el cliente en la sesión."""
+    if "gspread_client" not in st.session_state:
+        SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
+        st.session_state["gspread_client"] = gspread.authorize(creds)
+
+def get_worksheet(sheet_id):
+    """Obtiene la hoja de cálculo reutilizando la autenticación."""
+    authenticate()  # Asegura que `st.session_state["gspread_client"]` está disponible
+    client = st.session_state["gspread_client"]
+    spreadsheet = client.open_by_key(sheet_id)
+    return spreadsheet.worksheet("Sheet1")
+
+def overwrite_sheet(new_data, sheet_id):
+    """
+    Sobrescribe toda la hoja de cálculo con los nuevos datos.
+    
+    :param new_data: Lista de listas, donde cada sublista representa una fila.
+    :param sheet_id: ID de la hoja de cálculo en Google Sheets.
+    """
+    worksheet = get_worksheet(sheet_id)
+    worksheet.clear()  # Borra todo el contenido de la hoja
+    worksheet.update("A1", new_data)  # Escribe los nuevos datos desde A1
 
 
+def delete_data(id_value, sheet_id, column_index=1):
+    """Elimina todas las filas donde id_value esté presente en la columna especificada."""
+    worksheet = get_worksheet(sheet_id)
+    
+    try:
+        cells = worksheet.findall(str(id_value), in_column=column_index)  # Busca en una columna específica
+        if not cells:
+            return f"ID {id_value} no encontrado en la columna {column_index}."
+        
+        row_indices = sorted(set(cell.row for cell in cells), reverse=True)
+        for row in row_indices:
+            worksheet.delete_rows(row)
+        
+        return f"Se eliminaron {len(row_indices)} fila(s) con ID {id_value}."
+    
+    except Exception as e:
+        return f"Error al eliminar datos: {e}"
+
+
+def save_data(id_value, column_name, new_value, sheet_id):
+    worksheet = get_worksheet(sheet_id)
+    col_labels = worksheet.row_values(1)
+    if column_name not in col_labels:
+        st.error("Columna no encontrada")
+        return
+    col_index = col_labels.index(column_name) + 1
+    cell = worksheet.find(str(id_value))
+    if cell:
+        worksheet.update_cell(cell.row, col_index, new_value)
+
+def append_data(new_values, sheet_id):
+    worksheet = get_worksheet(sheet_id)
+    worksheet.append_row(new_values)
+
+def load_data(url):
+    return pd.read_excel(url,engine='openpyxl')
+def load_data1(url):
+    return pd.read_csv(url)
+
+def delete(index):#borra una fila completa y acomoda el resto de la hoja para que no quede el espacio en blanco
+    delete_data(index,st.secrets['prueba_ids']['clientes'])
+def save(id,column,data):#modifica un solo dato
+    save_data(id,column,data,st.secrets['prueba_ids']['clientes'])
+def new(data):#añade una columna entera de datos
+    append_data(data,st.secrets['prueba_ids']['clientes'])
 
 
 
@@ -59,7 +96,7 @@ def validarUsuario(usuario, clave):
     :return: True si el usuario y clave son válidos, False en caso contrario
     """
     try:
-        dfusuarios = load_data1(url)  # Carga el archivo CSV
+        dfusuarios = load_data1(st.secrets['prueba_urls']['usuarios'])  # Carga el archivo CSV
         # Verifica si existe un usuario y clave que coincidan
         if len(dfusuarios[(dfusuarios['usuario'] == usuario) & (dfusuarios['clave'] == clave)]) > 0:
             return True
@@ -76,7 +113,7 @@ def generarMenu(usuario,permiso):
     """
     with st.sidebar:
         try:
-            dfusuarios = load_data1(url)
+            dfusuarios = load_data1(st.secrets['prueba_urls']['usuarios'])
             dfUsuario = dfusuarios[dfusuarios['usuario'] == usuario]
             nombre = dfUsuario['nombre'].iloc[0]
 
@@ -118,26 +155,11 @@ def generarMenu(usuario,permiso):
             st.error("El archivo 'usuarios.csv' no se encontró.")
         except Exception as e:
             st.error(f"Error al generar el menú: {e}")
-def guardar_log_usuario():
-    """
-    Guarda en Google Sheets la fecha, hora y usuario que inició sesión.
-    """
-    if 'usuario' in st.session_state:
-        usuario = st.session_state['usuario']
-        fecha_hora = datetime.now().strftime('%Y-%m-%d %H:%M:%S')  # Fecha y hora actual
-
-        payload = {
-            "fileId": st.secrets['ids']['logs'],  # ID de la hoja de logs
-            "values": [[fecha_hora, usuario]]  # Datos a registrar
-        }
-        response = requests.post(api, data=json.dumps(payload))
-
-        return response.json()
-
-    return {"status": "error", "message": "No hay usuario en sesión"}
+def guardar_log():
+    pass
 
 def generarLogin():
-    usuarios=load_data1(st.secrets['urls']['usuarios'])
+    usuarios=load_data1(st.secrets['prueba_urls']['usuarios'])
     """
     Genera la ventana de login o muestra el menú si el login es válido.
     """
@@ -156,44 +178,12 @@ def generarLogin():
                             usuario=usuarios[usuarios['usuario']==st.session_state['usuario']]
                             st.session_state['user_data']=usuario
 
-                            guardar_log_usuario()  # Registrar el inicio de sesión en logs
+                            guardar_log()  # Registrar el inicio de sesión en logs
                         else:
                             st.error("Usuario o clave inválidos")
         except:
             st.switch_page('inicio.py')
 
 
-from datetime import datetime
-
-def historial( datos: pd.Series,tipo_movimiento: str):
-    usuario=st.session_state['usuario']
-    """
-    Guarda una serie de pandas en el historial de Google Sheets.
-    
-    :param usuario: Nombre del usuario que realiza la acción
-    :param tipo_movimiento: Tipo de movimiento registrado
-    :param datos: Serie de Pandas con los datos a guardar
-    """
-    # Obtener la fecha y hora actual
-    fecha_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Convertir la serie a lista de valores
-    valores = datos.tolist()
-    
-    # Crear la fila con la estructura deseada
-    fila = [fecha_hora, usuario, tipo_movimiento] + valores
-    
-    # Cargar configuración de la API y el ID de la hoja de historial
-    api = st.secrets["api"]["dfs"]
-    historial_id = st.secrets["ids"]["historial"]
-    
-    # Crear el payload para la API
-    payload = {
-        "fileId": historial_id,
-        "values": [fila]  # Convertir la fila en lista de listas
-    }
-    
-    # Enviar la solicitud a la API
-    response = requests.post(api, data=json.dumps(payload))
-    
-    return response.json()
+def historial():
+    pass

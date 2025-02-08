@@ -9,9 +9,9 @@ if 'page' not in st.session_state:
     st.session_state['page']='main'
 # Cargar datos desde secretos
 try:
-    ID_VISITAS = st.secrets['ids']['visitas']
-    url = st.secrets['urls']['visitas']
-    url_clientes = st.secrets['urls']['clientes']
+    ID_VISITAS = st.secrets['prueba_ids']['visitas']
+    url = st.secrets['prueba_urls']['visitas']
+    url_clientes = st.secrets['prueba_urls']['clientes']
 except KeyError:
     st.error("Error: No se encontraron claves en los secretos de Streamlit.")
     st.stop()
@@ -21,7 +21,7 @@ def load():
     data = login.load_data(url)
     if not isinstance(data, pd.DataFrame) or data.empty:
         st.warning("Advertencia: No se pudieron cargar las visitas.")
-        return pd.DataFrame(columns=["nro", "visita", "vendedor", "nombre", "fecha", "notas"])
+        return pd.DataFrame(columns=["id", "visita", "vendedor", "nombre", "fecha", "notas"])
     return data
 
 def save(df):
@@ -33,7 +33,7 @@ def new(datos):
     st.session_state['visitas'] = load()
 
 # Inicialización de session_state
-time_session = ['page', 'visitas', 'nro', 'usuario']
+time_session = ['page', 'visitas', 'id', 'usuario']
 for key in time_session:
     if key not in st.session_state:
         st.session_state[key] = 'visitas' if key == 'page' else None
@@ -82,7 +82,7 @@ def display_table(search_query=""):
             st.write(f"**Notas**: {row['notas']}")
         with col2:
             if st.button(f'✏️ Editar', key=f'edit_{idx}'):
-                st.session_state['nro'] = idx
+                st.session_state['id'] = idx
                 st.session_state['page'] = 'reg'
                 st.rerun()
         with col3:
@@ -117,8 +117,8 @@ def display_table(search_query=""):
 # Página de registro
 def registrar_visita():
     lista_clientes = clientes['nombre'].tolist()
-    nro = st.session_state.get("nro")
-    visita = st.session_state["visitas"].loc[nro] if nro in st.session_state["visitas"].index else None
+    id = st.session_state.get("id")
+    visita = st.session_state["visitas"].loc[id] if id in st.session_state["visitas"].index else None
     
     st.title("Crear Visita Registrada")
     with st.form("visita"):
@@ -133,11 +133,11 @@ def registrar_visita():
     
     if submit_button:
         if visita is None:
-            nuevo_cliente = pd.DataFrame([{ "nro": len(st.session_state["visitas"]) + 1, "visita": tipo, "vendedor": vendedor,
+            nuevo_cliente = pd.DataFrame([{ "id": len(st.session_state["visitas"]) + 1, "visita": tipo, "vendedor": vendedor,
                                             "nombre": nombre_cliente, "fecha": fecha, "notas": notas }])
             st.session_state["visitas"] = pd.concat([st.session_state["visitas"], nuevo_cliente], ignore_index=True)
         else:
-            st.session_state["visitas"].loc[nro, ["visita", "vendedor", "nombre", "fecha", "notas"]] = [tipo, vendedor, nombre_cliente, fecha, notas]
+            st.session_state["visitas"].loc[id, ["visita", "vendedor", "nombre", "fecha", "notas"]] = [tipo, vendedor, nombre_cliente, fecha, notas]
         save(st.session_state["visitas"])
         st.session_state['page'] = 'main'
         st.rerun()

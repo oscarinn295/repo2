@@ -182,7 +182,7 @@ def display_table(search_query=""):
                     if new_estado != row["estado"]:
                         updated_rows.append((idx, new_estado))
                     if st.button(f'✏️ Editar', key=f'edit_{idx}'):
-                        st.session_state["nro"] = idx
+                        st.session_state["id"] = idx
                         st.session_state["page"] = "gestionar_prestamo"
                         st.rerun()
 
@@ -235,7 +235,7 @@ if st.session_state["page"] == "main":
     with col1:
         # Botón para crear un nuevo préstamo
         if st.button("Crear Préstamo"):
-            st.session_state["nro"] = None  # No se está editando ningún cliente
+            st.session_state["id"] = None  # No se está editando ningún cliente
             st.session_state["page"] = "gestionar_prestamo"
             st.rerun()
     with col2:
@@ -254,8 +254,8 @@ if st.session_state["page"] == "gestionar_prestamo":
     st.title("Crear Préstamo")
 
     # Si estamos editando un préstamo, cargar datos existentes
-    if st.session_state["nro"] is not None:
-        prestamo = st.session_state["prestamos"].iloc[st.session_state["nro"]]
+    if st.session_state["id"] is not None:
+        prestamo = st.session_state["prestamos"].iloc[st.session_state["id"]]
         fecha = pd.to_datetime(prestamo["fecha"]).date() if prestamo["fecha"] else date.today()
         nombre_cliente_default = prestamo["nombre"]
         capital = prestamo["capital"]
@@ -288,7 +288,7 @@ if st.session_state["page"] == "gestionar_prestamo":
         for nombre in clientes['nombre']:
             lista.append(nombre)
         with col1:
-            if st.session_state["nro"] is not None and nombre_cliente_default in lista:
+            if st.session_state["id"] is not None and nombre_cliente_default in lista:
                 index_cliente = lista.index(nombre_cliente_default)
             else:
                 index_cliente = 0
@@ -341,10 +341,10 @@ if st.session_state["page"] == "gestionar_prestamo":
                 "monto": monto,
                 "obs": obs
             }])
-            if st.session_state["nro"] is not None:
+            if st.session_state["id"] is not None:
                 # Editar préstamo existente
-                st.session_state["prestamos"].iloc[st.session_state["nro"]] = nuevo_prestamo.iloc[0]
-                login.historial(st.session_state["prestamos"].iloc[st.session_state["nro"]].to_dict(), 'edicion_prestamo_viejo')
+                st.session_state["prestamos"].iloc[st.session_state["id"]] = nuevo_prestamo.iloc[0]
+                login.historial(st.session_state["prestamos"].iloc[st.session_state["id"]].to_dict(), 'edicion_prestamo_viejo')
                 save(st.session_state["prestamos"])
                 login.historial(nuevo_prestamo.iloc[0].to_dict(), 'edicion_prestamo_nuevo')
             else:

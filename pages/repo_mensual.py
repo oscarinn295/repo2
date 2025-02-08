@@ -5,16 +5,13 @@ import streamlit as st
 # Llamar al módulo de login
 login.generarLogin()
 
-idc=st.secrets['ids']['repo_mensual']
-url=st.secrets['urls']['repo_mensual']
+idc=st.secrets['prueba_ids']['repo_mensual']
+url=st.secrets['prueba_urls']['repo_mensual']
 def load():
     return login.load_data(url)
-def new(datos):
-    login.append_data(idc,datos)
-    st.session_state['prestamos']=load()
-def save(df):
-    login.save_data(idc,df)
-    st.session_state['prestamos']=load()
+
+def new(data):#añade una columna entera de datos
+    login.append_data(data,st.secrets['prueba_ids']['clientes'])
 
 if 'repo_mensual' not in st.session_state:
     st.session_state['repo_mensual']=load()

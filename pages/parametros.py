@@ -2,13 +2,15 @@ import streamlit as st
 import login
 import pandas as pd
 
-idc=st.secrets['ids']['parametros']
-url=st.secrets['urls']['parametros']
+idc=st.secrets['prueba_ids']['parametros']
+url=st.secrets['prueba_urls']['parametros']
 def load():
     return login.load_data1(url)
-def save(df):
-    login.save_data(idc,df)
-    st.session_state['prestamos']=load()
+
+def save(id,column,data):#modifica un solo dato
+    login.save_data(id,column,data,idc)
+
+
 
 
 login.generarLogin()

@@ -7,18 +7,10 @@ import streamlit as st
 login.generarLogin()
 
 
-idc=st.secrets['ids']['repo_ventas']
-url=st.secrets['urls']['repo_ventas']
+idc=st.secrets['prueba_ids']['repo_ventas']
+url=st.secrets['prueba_urls']['repo_ventas']
 def load():
     return login.load_data(url)
-def new(datos):
-    login.append_data(idc,datos)
-    st.session_state['prestamos']=load()
-def save(df):
-    login.save_data(idc,df)
-    st.session_state['prestamos']=load()
-
-
 
 
 # Inicializar la base de datos y la página actual
