@@ -27,6 +27,3 @@ if 'en_mora' not in st.session_state:
     st.session_state['en_mora']=login.load_data(st.secrets['prueba_urls']['en_mora'])
 if 'pendiente' not in st.session_state:
     st.session_state['pendiente']=login.load_data(st.secrets['prueba_urls']['pendientes'])
-
-st.text("Esto es una demo de la nueva página de gestión de clientes y algunos datos financieros.")
-st.text("Hecho por Oscar Molinas.")
