@@ -1,5 +1,8 @@
 import streamlit as st
 import login
+
+# Llamar al módulo de login
+login.generarLogin()
 if "clientes" not in st.session_state:
     st.session_state["clientes"] = login.load_data(st.secrets['urls']['clientes'])
 if "cobranzas" not in st.session_state:

@@ -5,7 +5,7 @@ import pandas as pd
 idc=st.secrets['ids']['parametros']
 url=st.secrets['urls']['parametros']
 def load():
-    return login.load_data1(url)
+    return login.load_data(url)
 
 def save(id,column,data):#modifica un solo dato
     login.save_data(id,column,data,idc)
