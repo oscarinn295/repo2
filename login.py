@@ -79,16 +79,22 @@ def load_data1(url):
     return pd.read_csv(url)
 
 def delete(index):#borra una fila completa y acomoda el resto de la hoja para que no quede el espacio en blanco
-    delete_data(index,st.secrets['prueba_ids']['clientes'])
+    delete_data(index,st.secrets['ids']['clientes'])
 def save(id,column,data):#modifica un solo dato
-    save_data(id,column,data,st.secrets['prueba_ids']['clientes'])
+    save_data(id,column,data,st.secrets['ids']['clientes'])
 def new(data):#añade una columna entera de datos
-    append_data(data,st.secrets['prueba_ids']['clientes'])
+    append_data(data,st.secrets['ids']['clientes'])
+
+
+
+
+st.session_state['usuarios']=load_data1(st.secrets['urls']['usuarios'])
 
 
 
 # Validación simple de usuario y clave con un archivo CSV
 def validarUsuario(usuario, clave):
+    st.session_state['usuarios']=load_data1(st.secrets['urls']['usuarios'])
     """
     Permite la validación de usuario y clave.
     :param usuario: Usuario ingresado
@@ -96,7 +102,7 @@ def validarUsuario(usuario, clave):
     :return: True si el usuario y clave son válidos, False en caso contrario
     """
     try:
-        dfusuarios = load_data1(st.secrets['prueba_urls']['usuarios'])  # Carga el archivo CSV
+        dfusuarios = st.session_state['usuarios']  # Carga el archivo CSV
         # Verifica si existe un usuario y clave que coincidan
         if len(dfusuarios[(dfusuarios['usuario'] == usuario) & (dfusuarios['clave'] == clave)]) > 0:
             return True
@@ -107,13 +113,14 @@ def validarUsuario(usuario, clave):
     return False
 
 def generarMenu(usuario,permiso):
+    st.session_state['usuarios']=load_data1(st.secrets['urls']['usuarios'])
     """
     Genera el menú en la barra lateral dependiendo del usuario.
     :param usuario: Usuario autenticado
     """
     with st.sidebar:
         try:
-            dfusuarios = load_data1(st.secrets['prueba_urls']['usuarios'])
+            dfusuarios = st.session_state['usuarios']
             dfUsuario = dfusuarios[dfusuarios['usuario'] == usuario]
             nombre = dfUsuario['nombre'].iloc[0]
 
@@ -143,7 +150,6 @@ def generarMenu(usuario,permiso):
                 st.page_link('pages/repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
                 st.page_link('pages/repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
                 st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
-                st.page_link('pages/repo_cobranzas.py', label="Reporte Cobranzas", icon=":material/group:")
                 st.page_link('pages/repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
             # Botón de cierre de sesión
             if st.button("Salir"):
@@ -159,7 +165,8 @@ def guardar_log():
     pass
 
 def generarLogin():
-    usuarios=load_data1(st.secrets['prueba_urls']['usuarios'])
+    st.session_state['usuarios']=load_data1(st.secrets['urls']['usuarios'])
+    usuarios=st.session_state['usuarios']
     """
     Genera la ventana de login o muestra el menú si el login es válido.
     """
@@ -185,5 +192,32 @@ def generarLogin():
             st.switch_page('inicio.py')
 
 
-def historial():
-    pass
+from datetime import datetime
+
+def historial(old_values, new_values):
+    """
+    Registra en una hoja de Google Sheets un cambio en los datos.
+
+    :param sheet_id: ID de la hoja de cálculo en Google Sheets.
+    :param old_values: Lista con los valores anteriores.
+    :param new_values: Lista con los valores nuevos.
+    """
+    worksheet = get_worksheet(st.secrets['ids']['historial'])
+
+    # Obtener la cantidad de filas actuales para generar el índice numérico
+    existing_data = worksheet.get_all_values()
+    index = len(existing_data)  # Nueva fila será una más que las actuales
+
+    # Obtener la fecha y hora actual
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Obtener el usuario actual
+    usuario = st.session_state.get("usuario", "Desconocido")
+
+    # Crear las filas con la estructura: [Fecha, Usuario, Índice, Valores...]
+    row_old = [timestamp, usuario, index] + old_values
+    row_new = [timestamp, usuario, index + 1] + new_values
+
+    # Agregar ambas filas a la hoja
+    worksheet.append_row(row_old)
+    worksheet.append_row(row_new)

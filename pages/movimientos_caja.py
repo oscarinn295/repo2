@@ -3,8 +3,8 @@ import login
 import pandas as pd
 from datetime import date
 
-idc=st.secrets['prueba_ids']['flujo_caja']
-url=st.secrets['prueba_urls']['flujo_caja']
+idc=st.secrets['ids']['flujo_caja']
+url=st.secrets['urls']['flujo_caja']
 def load():
     return login.load_data(url)
 def new(data):#añade una columna entera de datos
@@ -37,7 +37,7 @@ def crear():
             saldo_anterior = st.session_state["mov"]["Saldo"].iloc[-1] if not st.session_state["mov"].empty else 0.0
             saldo = saldo_anterior + ingreso - egreso
             
-            nuevo_movimiento = [fecha, concepto,ingreso, egreso,ingreso - egreso, saldo]
+            nuevo_movimiento = [fecha.strftime('%d/%m/%Y'), concepto,ingreso, egreso,ingreso - egreso, saldo]
 
             new(nuevo_movimiento)
             st.success("Movimiento guardado con éxito.")

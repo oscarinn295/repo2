@@ -5,13 +5,13 @@ import streamlit as st
 # Llamar al módulo de login
 login.generarLogin()
 
-idc=st.secrets['prueba_ids']['repo_mensual']
-url=st.secrets['prueba_urls']['repo_mensual']
+idc=st.secrets['ids']['repo_mensual']
+url=st.secrets['urls']['repo_mensual']
 def load():
     return login.load_data(url)
 
 def new(data):#añade una columna entera de datos
-    login.append_data(data,st.secrets['prueba_ids']['clientes'])
+    login.append_data(data,st.secrets['ids']['clientes'])
 
 if 'repo_mensual' not in st.session_state:
     st.session_state['repo_mensual']=load()
@@ -28,34 +28,3 @@ def display_table(search_query=""):
 
 st.title("Reporte Mensual")
 display_table()
-
-if st.session_state['usuario']=="admin":
-    st.title("subir nuevos datos")
-    #concatenar o sobreescribir
-    # Título de la aplicación
-    st.title("Cargar y analizar archivo CSV")
-
-    # Widget para cargar el archivo
-    uploaded_file = st.file_uploader("Sube un archivo CSV", type="csv")
-
-    if uploaded_file is not None:
-        # Leer el archivo CSV
-        df = pd.read_csv(uploaded_file)
-
-        # Mostrar un mensaje de éxito
-        st.success("Archivo cargado con éxito!")
-
-        # Mostrar los datos
-        st.subheader("Vista previa de los datos:")
-        st.dataframe(df.head())  # Muestra las primeras filas
-
-        # Mostrar información adicional del DataFrame
-        st.subheader("Descripción estadística:")
-        st.write(df.describe())
-
-        # Mostrar las columnas disponibles
-        st.subheader("Columnas del archivo:")
-        st.write(df.columns.tolist())
-
-    else:
-        st.info("Por favor, sube un archivo para comenzar.")

@@ -2,8 +2,8 @@ import streamlit as st
 import login
 import pandas as pd
 
-idc=st.secrets['prueba_ids']['parametros']
-url=st.secrets['prueba_urls']['parametros']
+idc=st.secrets['ids']['parametros']
+url=st.secrets['urls']['parametros']
 def load():
     return login.load_data1(url)
 

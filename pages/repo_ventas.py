@@ -7,8 +7,8 @@ import streamlit as st
 login.generarLogin()
 
 
-idc=st.secrets['prueba_ids']['repo_ventas']
-url=st.secrets['prueba_urls']['repo_ventas']
+idc=st.secrets['ids']['repo_ventas']
+url=st.secrets['urls']['repo_ventas']
 def load():
     return login.load_data(url)
 
@@ -31,34 +31,3 @@ def display_table(search_query=""):
 
 st.title("Ventas por vendedor")
 display_table()
-
-if st.session_state['usuario']=="admin":
-    st.title("subir nuevos datos")
-    #concatenar o sobreescribir
-    # Título de la aplicación
-    st.title("Cargar y analizar archivo CSV")
-
-    # Widget para cargar el archivo
-    uploaded_file = st.file_uploader("Sube un archivo CSV", type="csv")
-
-    if uploaded_file is not None:
-        # Leer el archivo CSV
-        df = pd.read_csv(uploaded_file)
-
-        # Mostrar un mensaje de éxito
-        st.success("Archivo cargado con éxito!")
-
-        # Mostrar los datos
-        st.subheader("Vista previa de los datos:")
-        st.dataframe(df.head())  # Muestra las primeras filas
-
-        # Mostrar información adicional del DataFrame
-        st.subheader("Descripción estadística:")
-        st.write(df.describe())
-
-        # Mostrar las columnas disponibles
-        st.subheader("Columnas del archivo:")
-        st.write(df.columns.tolist())
-
-    else:
-        st.info("Por favor, sube un archivo para comenzar.")
