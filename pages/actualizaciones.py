@@ -23,26 +23,3 @@ if 'repo_ventas' not in st.session_state:
 #numero de clientes por vendedor
 #numero de cobranzas pendientes por mes, por vendedor y estado de las cobranzas
 #todos los morosos
-
-st.title('Reporte general')
-prestamos=st.session_state['prestamos']
-prestamos=prestamos[prestamos['estado']=='liquidado']
-prestamos_vigentes=prestamos.shape[0]
-st.write(f'Prestamos vigentes: {prestamos_vigentes}')
-
-clientes=st.session_state["clientes"]
-cobranzas=st.session_state["cobranzas"]
-
-moras=cobranzas[cobranzas['estado']=='en mora']
-cartones_morosos=prestamos[prestamos['id'].isin(moras['prestamo_id'].unique())]
-morosos=clientes[clientes['nombre'].isin(cartones_morosos['nombre'].unique())]
-st.write(f'Cantidad de clientes atrasados: {morosos.shape[0]}')
-
-
-with st.expander('ver movimientos de caja'):
-    st.subheader('movimientos de caja')
-    st.dataframe(st.session_state["mov"])
-
-with st.expander('reporte de ventas'):
-    st.subheader('reporte de ventas')
-    st.dataframe(st.session_state['repo_ventas'])

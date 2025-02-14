@@ -150,7 +150,11 @@ def generarMenu(usuario,permiso):
                 st.page_link('pages/repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
                 st.page_link('pages/repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
                 st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
-                st.page_link('pages/repo_ventas.py', label="Reporte de Ventas por Vendedor", icon=":material/group:")
+                st.page_link('pages/reporte_general.py', label="Reporte General", icon=":material/group:")
+            st.subheader("Otros")
+            if permiso=='admin':
+                st.page_link('pages/actualizaciones.py', label="Pendientes de actualizacion", icon=":material/group:")
+
             # Botón de cierre de sesión
             if st.button("Salir"):
                 del st.session_state['usuario']
