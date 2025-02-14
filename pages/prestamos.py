@@ -31,7 +31,7 @@ def generar_fechas_prestamos(fecha_registro:str, frecuencia:str, cuotas:int):
     :param cuotas: Número de cuotas
     :return: Lista de fechas de pago (list of datetime.date)
     """
-    fecha_registro=datetime.strptime(fecha_registro, "%d-%m-%Y")
+    fecha_registro=datetime.strptime(fecha_registro, "%Y-%m-%d")
     fecha_actual=fecha_registro
     fechas=[]
 
@@ -47,25 +47,25 @@ def generar_fechas_prestamos(fecha_registro:str, frecuencia:str, cuotas:int):
         fecha_actual+=dt.timedelta(days=10-date.today().day)
         for _ in range(cuotas):
             fecha_actual+=relativedelta(months=1)
-            fechas.append(fecha_actual.strftime("%d-%m-%Y"))
+            fechas.append(fecha_actual.strftime("%Y-%m-%d"))
 
     elif frecuencia=='Mensual: 10-20':
         fecha_actual+=dt.timedelta(days=20-date.today().day)
         for _ in range(cuotas):
             fecha_actual+=relativedelta(months=1)
-            fechas.append(fecha_actual.strftime("%d-%m-%Y"))
+            fechas.append(fecha_actual.strftime("%Y-%m-%d"))
 
 
     elif frecuencia=='Mensual: 20-30':
         fecha_actual+=dt.timedelta(days=30-date.today().day)
         for _ in range(cuotas):
             fecha_actual+=relativedelta(months=1)
-            fechas.append(fecha_actual.strftime("%d-%m-%Y"))
+            fechas.append(fecha_actual.strftime("%Y-%m-%d"))
 
     elif frecuencia=='Quincenal':
         for _ in range(cuotas):
             fecha_actual+=dt.timedelta(weeks=2)
-            fechas.append(fecha_actual.strftime("%d-%m-%Y"))
+            fechas.append(fecha_actual.strftime("%Y-%m-%d"))
 
     elif frecuencia in semanales:
         dia_objetivo = semanales[frecuencia]
@@ -73,9 +73,9 @@ def generar_fechas_prestamos(fecha_registro:str, frecuencia:str, cuotas:int):
             fecha_actual += dt.timedelta(days=1)
         for _ in range(cuotas):
             fecha_actual+=dt.timedelta(weeks=1)
-            fechas.append(fecha_actual.strftime("%d-%m-%Y"))
+            fechas.append(fecha_actual.strftime("%Y-%m-%d"))
     else:
-        return date.today().strftime("%d-%m-%Y")
+        return date.today().strftime("%Y-%m-%d")
     return fechas
 
 def crear_cobranzas(data,vencimiento=None):
@@ -168,12 +168,12 @@ vendedores=st.session_state['usuarios']['usuario'].tolist()
 import math
 
 
-def redondear_mil_condicional(numero, umbral=500):
+def redondear_mil_condicional(numero, umbral=50):
     resto = numero % 1000  # Obtiene los últimos tres dígitos
     if resto < umbral:
-        return int(math.floor(numero / 1000) * 1000)  # Redondea hacia abajo
+        return int(math.floor(numero / 100) * 100)  # Redondea hacia abajo
     else:
-        return int(math.ceil(numero / 1000) * 1000)   # Redondea hacia arriba
+        return int(math.ceil(numero / 100) * 100)   # Redondea hacia arriba
 
 
 #formulario para crear prestamo
@@ -239,7 +239,7 @@ def crear():
     
     if submit_button:
         nuevo_prestamo = [max(st.session_state['prestamos']['id'],default=0) + 1,
-            fecha.strftime('%d-%m-%Y'),
+            fecha.strftime('%Y-%m-%d'),
             nombre_cliente,
             vendedor,
             cantidad_cuotas,
