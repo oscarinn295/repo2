@@ -218,7 +218,7 @@ def historial(old_values, new_values):
     index = len(existing_data)  # Nueva fila será una más que las actuales
 
     # Obtener la fecha y hora actual
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
 
     # Obtener el usuario actual
     usuario = st.session_state.get("usuario", "Desconocido")

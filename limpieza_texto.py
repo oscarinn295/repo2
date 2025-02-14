@@ -84,7 +84,7 @@ def actualizar_hoja(sheet_id, df):
     # 3. Formatear columnas de fecha (si las hubiera)
     for col in df_nuevo.columns:
         if pd.api.types.is_datetime64_any_dtype(df_nuevo[col]):
-            df_nuevo[col] = df_nuevo[col].dt.strftime("%Y-%m-%d")
+            df_nuevo[col] = df_nuevo[col].dt.strftime("%d-%m-%Y")
 
     # 4. Reemplazar valores NaN y None para evitar errores JSON
     df_nuevo.replace([np.nan, None], '', inplace=True)

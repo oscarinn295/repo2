@@ -41,9 +41,9 @@ if hoy.day == 1:
     mes=int(ayer.month)
 
 
-    prestamos['fecha'] = pd.to_datetime(prestamos['fecha'], format="%Y-%m-%d")
+    prestamos['fecha'] = pd.to_datetime(prestamos['fecha'], format="%d-%m-%Y")
 
-    cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha'], format="%Y-%m-%d")
+    cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha'], format="%d-%m-%Y")
 
 
     # Filtrar el DataFrame

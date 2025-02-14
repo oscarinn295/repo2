@@ -28,7 +28,7 @@ def delete(index):
 
     # 🔹 5. Convertir `fecha_nac` a string
     try:
-        df_nuevo['fecha_nac'] = df_nuevo['fecha_nac'].dt.strftime("%Y-%m-%d")
+        df_nuevo['fecha_nac'] = df_nuevo['fecha_nac'].dt.strftime("%d-%m-%Y")
     except:
         pass
 
@@ -110,7 +110,7 @@ def editar(cliente):
                 (vendedor,'vendedor'),
                 (scoring,'scoring'),
                 (direccion,'direccion'),
-                (fecha_nac.strftime("%Y-%m-%d"), 'fecha_nac'),
+                (fecha_nac.strftime("%d-%m-%Y"), 'fecha_nac'),
                 (dni,'dni'),
                 (celular,'celular'),
                 (mail,'mail')]
@@ -146,7 +146,7 @@ def crear():
                 vendedor,
                 scoring,
                 direccion,
-                fecha_nac.strftime("%Y-%m-%d"),
+                fecha_nac.strftime("%d-%m-%Y"),
                 dni,
                 celular,
                 mail

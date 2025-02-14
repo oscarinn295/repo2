@@ -103,9 +103,9 @@ with col6:
         # Reemplazar NaN y NaT en todas las columnas
         cobranzas = cobranzas.replace({np.nan: "", pd.NaT: ""})
         cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>date.today(),'estado']='pendiente de pago'
-        cobranzas['vencimiento']=cobranzas['vencimiento'].dt.strftime('%Y-%m-%d').str.slice(0, 10)
+        cobranzas['vencimiento']=cobranzas['vencimiento'].astype(str).str.slice(0, 10)
         # Solución específica para la columna 'fecha_cobro'
-        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].dt.strftime('%Y-%m-%d').replace("NaT", "")
+        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].astype(str).replace("NaT", "")
 
         # Convertir a lista de listas para subir a Google Sheets
         data_to_upload = [cobranzas.columns.tolist()] + cobranzas.astype(str).values.tolist()
@@ -119,7 +119,7 @@ def ingreso(cobranza,des):
     st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
     caja=st.session_state["mov"]
     caja['saldo'] = pd.to_numeric(caja['saldo'], errors='coerce')
-    mov=[date.today().strftime("%Y-%m-%d"),
+    mov=[date.today().strftime("%d-%m-%Y"),
         f"COBRANZA CUOTA NRO: {cobranza["n_cuota"]}, {des}",
         cobranza['pago'],
         0,
@@ -159,7 +159,7 @@ def registrar(cobranza):
                 ('redondeo', 0.0),
                 ('estado', registro),
                 ('comprobante', comprobante),
-                ('fecha_cobro',date.today().strftime('%Y-%m-%d'))
+                ('fecha_cobro',date.today().strftime('%d-%m-%Y'))
             ]
             for col, dato in actualizacion:
                 save(cobranza['id'], col, dato)
