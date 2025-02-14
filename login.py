@@ -165,6 +165,15 @@ def guardar_log():
     pass
 
 def generarLogin():
+    # Ocultar el menú y el pie de página de Streamlit
+    hide_streamlit_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        </style>
+    """
+    st.markdown(hide_streamlit_style, unsafe_allow_html=True)
     st.session_state['usuarios']=load_data1(st.secrets['urls']['usuarios'])
     usuarios=st.session_state['usuarios']
     """
