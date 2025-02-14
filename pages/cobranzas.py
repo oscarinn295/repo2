@@ -103,10 +103,11 @@ with col6:
         # Reemplazar NaN y NaT en todas las columnas
         cobranzas = cobranzas.replace({np.nan: "", pd.NaT: ""})
         cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>date.today(),'estado']='pendiente de pago'
-        cobranzas['vencimiento']=cobranzas['vencimiento'].astype(str).str.slice(0, 10)
+        cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
         # Solución específica para la columna 'fecha_cobro'
-        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].astype(str).replace("NaT", "")
-
+        cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha_cobro'], errors='coerce').dt.strftime('%d-%m-%Y')
+        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].replace("NaT", "")
+        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].fillna("").astype(str)
         # Convertir a lista de listas para subir a Google Sheets
         data_to_upload = [cobranzas.columns.tolist()] + cobranzas.astype(str).values.tolist()
         # Sobrescribir en Google Sheets
