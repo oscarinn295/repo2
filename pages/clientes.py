@@ -6,7 +6,28 @@ import streamlit as st
 idc=st.secrets['ids']['clientes']
 url = st.secrets['urls']['clientes']
 def load():
-    return login.load_data(url)
+    df=login.load_data(url)
+    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+        df=df[df['vendedor']==st.session_state['usuario']]
+    return df
+
+def save(id,column,data):#modifica un solo dato
+    login.save_data(id,column,data,idc)
+def new(data):#añade una columna entera de datos
+    login.append_data(data,idc)
+
+login.generarLogin()
+st.session_state['clientes']=load() 
+
+cobranzas=login.load_data(st.secrets['urls']['cobranzas'])
+prestamos=login.load_data(st.secrets['urls']['prestamos'])
+
+if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+    cobranzas=cobranzas[cobranzas['vendedor']==st.session_state['usuario']]
+    prestamos=prestamos[prestamos['vendedor']==st.session_state['usuario']]
+
+
+
 
 import numpy as np
 
@@ -50,19 +71,11 @@ def delete(index):
 
 
 
-def save(id,column,data):#modifica un solo dato
-    login.save_data(id,column,data,idc)
-def new(data):#añade una columna entera de datos
-    login.append_data(data,idc)
 
-
-login.generarLogin()
-st.session_state['clientes']=load() 
-
-if 'page' not in st.session_state:
-    st.session_state['page']='main'
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
+
+
 vendedores=st.session_state['usuarios']['usuario'].tolist()
 # Función para mostrar la tabla con filtro de búsqueda
 from datetime import date
@@ -156,8 +169,7 @@ def crear():
 
     #login.historial(nuevo_cliente,'nuevo cliente')
 
-cobranzas=login.load_data(st.secrets['urls']['cobranzas'])
-prestamos=login.load_data(st.secrets['urls']['prestamos'])
+
 
 
 def display_table(search_query=""):

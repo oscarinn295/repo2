@@ -28,6 +28,8 @@ if 'repo_ventas' not in st.session_state:
 #todos los morosos
 
 st.title('Reporte general')
+
+
 prestamos=st.session_state['prestamos']
 prestamos=prestamos[prestamos['estado']=='liquidado']
 prestamos_vigentes=prestamos.shape[0]
@@ -39,8 +41,21 @@ cobranzas=st.session_state["cobranzas"]
 moras=cobranzas[cobranzas['estado']=='en mora']
 cartones_morosos=prestamos[prestamos['id'].isin(moras['prestamo_id'].unique())]
 morosos=clientes[clientes['nombre'].isin(cartones_morosos['nombre'].unique())]
-st.write(f'Cantidad de clientes atrasados: {morosos.shape[0]}')
 
+
+import pandas as pd
+cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], format='%d-%m-%Y')
+cobranzas_2025=cobranzas[cobranzas['vencimiento'].dt.year>2025]
+prestamos['fecha'] = pd.to_datetime(prestamos['fecha'], format='%d-%m-%Y')
+prestamos_2025=prestamos[prestamos['fecha'].dt.year>2025]
+generado=cobranzas_2025['pago'].sum()-prestamos_2025['capital'].sum()
+
+col1,col2=st.columns(2)
+
+with col1:
+    st.write(f'Cantidad de clientes atrasados: {morosos.shape[0]}')
+with col2:
+    st.write(f"Plata generada en 2025:{generado}")
 
 with st.expander('ver movimientos de caja'):
     st.subheader('movimientos de caja')

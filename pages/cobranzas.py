@@ -5,9 +5,18 @@ import re
 import streamlit as st
 import login
 from datetime import date
+import meta_ediciones
+
+
 if 'prestamos' not in st.session_state:
     st.session_state["prestamos"] = login.load_data(st.secrets['urls']['prestamos'])
-st.session_state['cobranzas'] = login.load_data(st.secrets['urls']['cobranzas'])
+if 'cobranzas' not in st.session_state:
+    st.session_state['cobranzas'] = login.load_data(st.secrets['urls']['cobranzas'])
+prestamos=st.session_state["prestamos"]
+if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+    st.session_state["prestamos"]=st.session_state["prestamos"][st.session_state["prestamos"]['vendedor']==st.session_state['usuario']]
+    st.session_state['cobranzas']=st.session_state['cobranzas'][st.session_state['cobranzas']['vendedor']==st.session_state['usuario']]
+    prestamos=prestamos[prestamos['vendedor']==st.session_state['usuario']]
 login.generarLogin()
 
 
@@ -16,7 +25,10 @@ idc = st.secrets['ids']['cobranzas']
 url = st.secrets['urls']['cobranzas']
 
 def load():
-    return login.load_data(url)
+    df=login.load_data(url)
+    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+        df=df[df['vendedor']==st.session_state['usuario']]
+    return df
 
 def save(id,column,data):#modifica un solo dato
     login.save_data(id,column,data,idc)
@@ -35,69 +47,43 @@ def convert_drive_url(url):
 
 from datetime import datetime
 import datetime as dt
-prestamos=st.session_state["prestamos"]
+
 import pandas as pd
 from datetime import date
 import numpy as np
-# Definir función de recálculo
-def calcular_recargo(cobranza):
-    prestamo = prestamos[prestamos['id'] == cobranza['prestamo_id']]
-    
-    # Si el préstamo no existe, mantener los valores originales
-    if pd.isna(cobranza['prestamo_id']) or prestamo.empty:
-        return pd.Series([cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']], 
-                         index=['dias_mora', 'mora', 'monto_recalculado_mora'])
 
-    vencimiento = prestamo['vence'].iloc[0]
-    
-    tipo_prestamo = {
-        'Mensual: 1-10': 300,
-        'Mensual: 10-20': 300,
-        'Mensual: 20-30': 300,
-        'Quincenal': 500,
-        'Semanal: lunes': 400,
-        'Semanal: martes': 400,
-        'Semanal: miercoles': 400,
-        'Semanal: jueves': 400,
-        'Semanal: viernes': 400,
-        'Semanal: sabado': 400,
-        'indef': 0
-    }
-    
-    hoy = pd.Timestamp(date.today())
-
-    # Si no hay fecha de vencimiento, mantener valores originales
-    if pd.isna(vencimiento):
-        return pd.Series([cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']], 
-                         index=['dias_mora', 'mora', 'monto_recalculado_mora'])
-
-    dias_mora = (hoy - pd.to_datetime(cobranza['vencimiento'])).days
-
-    # Si la fecha es futura o el estado es "pago total", mantener los valores originales
-    if dias_mora <= 0 or cobranza['estado'] == 'pago total':
-        return pd.Series([cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']], 
-                         index=['dias_mora', 'mora', 'monto_recalculado_mora'])
-
-    # Si hay mora, calcular los intereses
-    interes = tipo_prestamo.get(prestamo['vence'].iloc[0], 0)  # Asegurar que toma el tipo correcto
-    interes_por_mora = interes * max(0, dias_mora)
-    monto_recalculado_mora = cobranza['monto'] + interes_por_mora
-
-    return pd.Series([dias_mora, interes_por_mora, monto_recalculado_mora], 
-                     index=['dias_mora', 'mora', 'monto_recalculado_mora'])
-
+cobranzas = load()
 col1,col2,col3,col4,col5,col6=st.columns(6)
 with col6:
+    if st.button('reordenar datos'):
+        # Aplicar ordenamiento
+        df_cobranzas = meta_ediciones.ordenar_cobranzas(cobranzas)
+
+        # Limpiar NaN y asegurar que los datos sean cadenas (Google Sheets espera texto en JSON)
+        df_cobranzas = df_cobranzas.fillna("").astype(str)
+
+        # Convertir DataFrame a lista de listas (incluyendo encabezados)
+        data_to_save = [df_cobranzas.columns.tolist()] + df_cobranzas.values.tolist()
+
+        # Verificar que haya datos antes de sobrescribir
+        if len(data_to_save) > 1:
+            login.overwrite_sheet(data_to_save, st.secrets['ids']['cobranzas'])
+            st.success("✅ Datos actualizados correctamente en Google Sheets.")
+        else:
+            st.error("❌ Error: No hay datos válidos para guardar en Google Sheets.")
+        st.rerun()
+
+        
     if st.button('calcular regargos por mora'):
-        cobranzas = load()
         # Aplicar la función correctamente y asignar los valores de vuelta
-        cobranzas[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobranzas.apply(calcular_recargo, axis=1)
+        cobranzas[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobranzas.apply(meta_ediciones.calcular_recargo, axis=1)
 
         # Asegurar que las columnas estén en el orden correcto
-        column_order = ['id',"vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
-            "dias_mora", "mora", "monto_recalculado_mora", "pago", "redondeo", 
-            "estado", "comprobante", "prestamo_id", "cobrador", "fecha_cobro"
-        ]
+        column_order = ['id','prestamo_id','entregado','tnm','cantidad de cuotas',
+                        "vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
+                        "dias_mora", "mora",'capital','cuota pura','intereses',
+                        'amortizacion','iva','monto_recalculado_mora','pago',
+                        'redondeo','estado','medio de pago','cobrador','fecha_cobro' ]
         cobranzas = cobranzas[column_order]
 
         # Reemplazar NaN y NaT en todas las columnas
@@ -114,14 +100,12 @@ with col6:
         sheet_id = st.secrets['ids']['cobranzas']
         login.overwrite_sheet(data_to_upload, sheet_id)
 
-
-
-def ingreso(cobranza,des):
+def ingreso(cobranza,descripcion):
     st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
     caja=st.session_state["mov"]
     caja['saldo'] = pd.to_numeric(caja['saldo'], errors='coerce')
     mov=[date.today().strftime("%d-%m-%Y"),
-        f"COBRANZA CUOTA NRO: {cobranza["n_cuota"]}, {des}",
+        f"COBRANZA CUOTA NRO: {cobranza["n_cuota"]}, {descripcion}",
         cobranza['pago'],
         0,
         cobranza['pago'],
@@ -129,51 +113,84 @@ def ingreso(cobranza,des):
         ]
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 vendedores = st.session_state['usuarios']['usuario'].tolist()
+import numpy as np
+from datetime import date
+
 def registrar(cobranza):
-    import numpy as np
-    pago=st.selectbox('monto',['pago',f'pago total: {cobranza['monto_recalculado_mora']}','otro monto'],index=0,key=f"pago{cobranza['id']}")
-    if pago=='pago total':
+
+    fecha_cobro=st.selectbox(
+        'fecha de cobro',
+        ['seleccionar fecha','hoy','otra fecha'],
+        index=0,key=f"vencimientoo{cobranza['id']}"
+    )
+    if 'hoy' in fecha_cobro:
+        fecha_cobro=date.today().strftime("%d-%m-%Y")
+    elif 'otra fecha':
+        fecha_cobro=st.date_input('fecha del cobro',key=f"cobro{cobranza['id']}")
+        fecha_cobro=fecha_cobro.strftime("%d-%m-%Y")
+    pago = st.selectbox(
+        'Monto',
+        ['pago', f"pago total: {cobranza['monto_recalculado_mora']}", 'otro monto'],
+        index=0,
+        key=f"pago{cobranza['id']}"
+    )
+
+    if 'pago total' in pago:
         monto = cobranza['monto_recalculado_mora']
-        registro='pago total'
-    else:
-        monto = st.number_input("Monto", min_value=0.0,max_value=float(cobranza['monto_recalculado_mora']), step=1000.0, key=f"monto_{cobranza['id']}")
-        if monto<cobranza['monto_recalculado_mora']:
-            registro='pago parcial'
-        else:
-            registro='pago total'
-    medio_pago = st.selectbox('Seleccione una opción', ['Seleccione una opción', 'efectivo', 'transferencia'], key=f"medio_{cobranza['id']}")
-    comprobante = ""
+        registro = 'pago total'
+        st.write(f'monto a pagar: {monto}')
+    elif 'otro monto' in pago:
+        monto = st.number_input(
+            "Monto",
+            min_value=0.0,
+            max_value=float(cobranza['monto_recalculado_mora']),
+            value=0.0,
+            step=1000.0,
+            key=f"monto_{cobranza['id']}"
+        )
+        registro = 'pago parcial' if monto < cobranza['monto_recalculado_mora'] else 'pago total'
+
+    medio_pago = st.selectbox(
+        'Seleccione una opción', 
+        ['Seleccione una opción', 'efectivo', 'transferencia','mixto'], 
+        key=f"medio_{cobranza['id']}"
+    )
 
     if medio_pago == 'transferencia':
-        pass
+        comprobante = st.text_input('Número de comprobante', key=f"comprobante_{cobranza['id']}")
+    else:
+        comprobante = ""
+
     with st.form(f"registrar_pago{cobranza['id']}"):
         cobrador = st.selectbox('Cobrador', vendedores, key=f"cobradores_{cobranza['id']}")
         submit_button = st.form_submit_button("Registrar")
 
     if submit_button:
+        if medio_pago == 'Seleccione una opción' or monto <= 0:
+            st.warning('Faltan datos')
+            return
+
         cobranza['vencimiento'] = str(cobranza['vencimiento'])
         cobranza = cobranza.replace({np.nan: ""})
-        if medio_pago != 'Seleccione una opción' and monto > 0:
-            actualizacion = [
-                ('cobrador', cobrador),
-                ('pago', cobranza['pago']+monto),
-                ('redondeo', 0.0),
-                ('estado', registro),
-                ('comprobante', comprobante),
-                ('fecha_cobro',date.today().strftime('%d-%m-%Y'))
-            ]
-            for col, dato in actualizacion:
-                save(cobranza['id'], col, dato)
-            if registro=='pago total' or monto==cobranza['monto']:
-                save(cobranza['id'],'estado',registro)
-                save(cobranza['id'], 'monto', float(cobranza['monto']) - monto)
-            else:
-                save(cobranza['id'], 'monto', float(cobranza['monto']) - monto)
-            ingreso(cobranza, registro)
-            st.session_state['cobranzas']=load()
-            st.rerun()
-        else:
-            st.warning('Faltan datos')
+
+        actualizacion = [
+            ('cobrador', cobrador),
+            ('pago', cobranza.get('pago', 0) + monto),
+            ('redondeo', 0.0),
+            ('estado', registro),
+            ('medio de pago',medio_pago)
+            ('comprobante', comprobante),
+            ('fecha_cobro', date.today().strftime('%d-%m-%Y')),
+            ('monto', max(0, float(cobranza['monto']) - monto))
+        ]
+
+        for col, dato in actualizacion:
+            save(cobranza['id'], col, dato)
+
+        ingreso(cobranza, registro)
+        st.session_state['cobranzas'] = load()
+        st.rerun()
+
 
 def no_abono(cobranza):
 
@@ -244,25 +261,25 @@ def display_table():
                 with col1:
                     st.write(f"**Vencimiento**: {row['vencimiento']}")
                 with col2:
-                    st.write(f"Vendedor: {row['vendedor']}")
+                    st.write(f"Vendedor: {row['vendedor']} \n", unsafe_allow_html=True)
                     st.write(f"**Cliente**: {row['nombre']}")
                 with col3:
-                    st.write(f"**Cuota**: {row['n_cuota']}... **Monto**: {row['monto']}")
+                    st.write(f"**Cuota**: {row['n_cuota']} \n", unsafe_allow_html=True)
+                    st.write(f"**Monto**: {row['monto']}")
                 with col4:
-                    st.write(f"Monto Recalculado (+Mora): {row['monto_recalculado_mora']}")
+                    st.write(f"Amortización: {row['amortizacion']} \n", unsafe_allow_html=True)
+                    st.write(f"Intereses: {row['intereses']} \n", unsafe_allow_html=True)
+                    st.write(f"IVA: {row['iva']}")
                 with col5:
-                    st.write(f"Monto Pago: {row['pago']}")
+                    st.write(f"Monto Recalculado (+Mora): {row['monto_recalculado_mora']} \n", unsafe_allow_html=True)
                 with col6:
+                    st.write(f"Monto Pago: {row['pago']} \n",unsafe_allow_html=True)
                     st.write(f"Redondeo: {row['redondeo']}")
                 with col7:
                     st.write(f"{row['estado']}")
                 with col8:
-                    if pd.notna(row["comprobante"]):
-                        st.write(f"{row['comprobante']}")
-                        # Aquí podrías agregar la imagen o enlace del comprobante
-                    else:
-                        with st.popover('Actualizar'):
-                            registrar(row)
+                    with st.popover('Actualizar'):
+                        registrar(row)
     else:
         st.warning("No se encontraron resultados.")
 

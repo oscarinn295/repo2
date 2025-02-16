@@ -150,9 +150,8 @@ def generarMenu(usuario,permiso):
                 st.page_link('pages/repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
                 st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
                 st.page_link('pages/reporte_general.py', label="Reporte General", icon=":material/group:")
-            #st.subheader("Otros")
-            #if permiso=='admin':
-                #st.page_link('pages/actualizaciones.py', label="Pendientes de actualizacion", icon=":material/group:")
+            st.subheader("Otros")
+            st.page_link('pages/preliminar.py', label="Actualizaciones preliminares", icon=":material/group:")
 
             # Botón de cierre de sesión
             if st.button("Salir"):
@@ -177,29 +176,25 @@ def generarLogin():
         </style>
     """
     st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-    st.session_state['usuarios']=load_data1(st.secrets['urls']['usuarios'])
-    usuarios=st.session_state['usuarios']
-    """
-    Genera la ventana de login o muestra el menú si el login es válido.
-    """
+    st.session_state['usuarios'] = load_data1(st.secrets['urls']['usuarios'])
+    usuarios = st.session_state['usuarios']
+
     if 'usuario' in st.session_state:
-        generarMenu(st.session_state['usuario'],st.session_state['user_data']['permisos'].iloc[0])  # Muestra el menú si ya está autenticado
+        generarMenu(st.session_state['usuario'], st.session_state['user_data']['permisos'].iloc[0])
     else:
         try:
-            
-                with st.form('frmLogin'):
-                    parUsuario = st.text_input('Usuario')
-                    parPassword = st.text_input('Password', type='password')
-                    if st.form_submit_button('Ingresar'):
-                        if validarUsuario(parUsuario, parPassword):
-                            st.session_state['usuario'] = parUsuario
-                            
-                            usuario=usuarios[usuarios['usuario']==st.session_state['usuario']]
-                            st.session_state['user_data']=usuario
-
-                            guardar_log()  # Registrar el inicio de sesión en logs
-                        else:
-                            st.error("Usuario o clave inválidos")
+            with st.form('frmLogin'):
+                parUsuario = st.text_input('Usuario')
+                parPassword = st.text_input('Password', type='password')
+                if st.form_submit_button('Ingresar'):
+                    if validarUsuario(parUsuario, parPassword):
+                        st.session_state['usuario'] = parUsuario
+                        usuario = usuarios[usuarios['usuario'] == st.session_state['usuario']]
+                        st.session_state['user_data'] = usuario
+                        guardar_log()  # Registrar el inicio de sesión en logs
+                        st.rerun()  # Recargar la aplicación inmediatamente después del login exitoso
+                    else:
+                        st.error("Usuario o clave inválidos")
         except:
             st.switch_page('inicio.py')
 
@@ -210,7 +205,6 @@ def historial(old_values, new_values):
     """
     Registra en una hoja de Google Sheets un cambio en los datos.
 
-    :param sheet_id: ID de la hoja de cálculo en Google Sheets.
     :param old_values: Lista con los valores anteriores.
     :param new_values: Lista con los valores nuevos.
     """

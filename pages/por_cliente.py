@@ -1,5 +1,6 @@
 import streamlit as st
 import login
+import pandas as pd
 if st.button("Volver"):
     st.session_state['cliente'] = None
     st.switch_page("pages/clientes.py")
@@ -16,6 +17,51 @@ else:
     # Filtrar préstamos y cobranzas por el cliente seleccionado
     prestamos_cliente = prestamos[prestamos['nombre'] == cliente['nombre']]
     cobranzas_cliente = cobranzas[cobranzas['nombre'] == cliente['nombre']]
+
+    cobranzas_cliente['vencimiento'] = pd.to_datetime(cobranzas_cliente['vencimiento'], format='%d-%m-%Y', errors='coerce')
+    prestamos_cliente['fecha'] = pd.to_datetime(prestamos_cliente['fecha'], format='%d-%m-%Y', errors='coerce')
+
+
+    # Obtener la fecha mínima y máxima de vencimiento, manejando NaT
+    primer_cobranza = cobranzas_cliente['vencimiento'].min()
+    ultima_cobranza = cobranzas_cliente['vencimiento'].max()
+
+    primer_prestamo = prestamos_cliente['fecha'].min()
+    ultimo_prestamo = prestamos_cliente['fecha'].max()
+
+    # Verificar si los valores son NaT antes de aplicar strftime
+    primer_cobranza = primer_cobranza.strftime('%d-%m-%Y') if pd.notna(primer_cobranza) else ""
+    ultima_cobranza = ultima_cobranza.strftime('%d-%m-%Y') if pd.notna(ultima_cobranza) else ""
+
+    primer_prestamo = primer_prestamo.strftime('%d-%m-%Y') if pd.notna(primer_prestamo) else ""
+    ultimo_prestamo = ultimo_prestamo.strftime('%d-%m-%Y') if pd.notna(ultimo_prestamo) else ""
+
+    col1,col2,col3,col4=st.columns(4)
+    with col1:
+        #primer y ultima cobranza
+        st.write(f"primer vencimiento: {primer_cobranza}")
+        st.write(f"ultimo vencimiento: {ultima_cobranza}")
+        #primer y ultimo prestamo
+        st.write(f"primer prestamo: {primer_prestamo}")
+        st.write(f"ultimo prestamo: {ultimo_prestamo}")
+        
+    with col2:
+        #capital entregado
+        entregado=prestamos_cliente['capital'].sum()
+        st.write(f"capital entregado: {entregado}")
+        #total de intereses
+        mora=cobranzas_cliente['mora'].sum()
+        st.write(f"total de intereses: {mora}")
+        
+    with col3:
+        #total de deuda
+        monto_mora=cobranzas_cliente['monto_recalculado_mora'].sum()-cobranzas_cliente['pago'].sum()
+        st.write(f"total adeudado: {monto_mora}")
+
+        #total pagado
+        pagado=cobranzas_cliente['pago'].sum()
+        st.write(f"total pagado: {pagado}")
+
     # Función para mostrar el nivel de morosidad
     def nivel_de_morosidad():
         with st.container():

@@ -58,6 +58,5 @@ if not df.empty:
                     save(df)
                     st.success(f"Parámetro actualizado: {row['Parametro']}")
                     st.experimental_rerun()
-    st.write('Los prestamos vencen los dias:10,20 o 30')
 else:
     st.warning("No se encontraron resultados.")

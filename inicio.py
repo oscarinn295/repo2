@@ -9,10 +9,12 @@ if "clientes" not in st.session_state:
     st.session_state["clientes"] = login.load_data(st.secrets['urls']['clientes'])
 if "cobranzas" not in st.session_state:
     st.session_state["cobranzas"] = login.load_data(st.secrets['urls']['cobranzas'])
-if "mov" not in st.session_state:
-    st.session_state["mov"] = login.load_data(st.secrets['urls']['flujo_caja'])
 if "prestamos" not in st.session_state:
     st.session_state["prestamos"] = login.load_data(st.secrets['urls']['prestamos'])
+
+if "mov" not in st.session_state:
+    st.session_state["mov"] = login.load_data(st.secrets['urls']['flujo_caja'])
+
 if 'repo_cobranzas' not in st.session_state:
     st.session_state['repo_cobranzas']=login.load_data(st.secrets['urls']['repo_cobranzas'])
 if 'comisiones' not in st.session_state:

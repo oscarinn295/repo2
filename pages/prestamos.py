@@ -1,23 +1,54 @@
 import streamlit as st
 import login
+import datetime as dt
 from datetime import datetime
 from datetime import date
-import datetime as dt
 from dateutil.relativedelta import relativedelta
+import pandas as pd
+#inicializando los datos de los prestamos
+idc=st.secrets['ids']['prestamos']
+url=st.secrets['urls']['prestamos']
+
+def load():
+    df=login.load_data(url)
+    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+        df=df[df['vendedor']]==st.session_state['usuario']
+    return df
+def delete(index):#borra una fila completa y acomoda el resto de la hoja para que no quede el espacio en blanco
+    login.delete_data(index,idc)
+def save(id,column,data):#modifica un solo dato
+    login.save_data(id,column,data,idc)
+def new(data):#añade una columna entera de datos
+    login.append_data(data,idc)
 
 
-if "cobranzas" not in st.session_state:
-    st.session_state["cobranzas"] = login.load_data(st.secrets['urls']['cobranzas'])
-cobranzas=st.session_state["cobranzas"]
+login.generarLogin()
+
+
+st.session_state['prestamos']=load()
+
+
+
+
 
 
 if "mov" not in st.session_state:
     st.session_state["mov"] = login.load_data(st.secrets['urls']['flujo_caja'])
 
+if "cobranzas" not in st.session_state:
+    st.session_state["cobranzas"] = login.load_data(st.secrets['urls']['cobranzas'])
 
 if "clientes" not in st.session_state:
     st.session_state["clientes"] = login.load_data(st.secrets['urls']['clientes'])
+
+if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+    st.session_state["cobranzas"]=st.session_state["cobranzas"][st.session_state["cobranzas"]['vendedor']==st.session_state['usuario']]
+    st.session_state["clientes"]=st.session_state["clientes"][st.session_state["clientes"]['vendedor']==st.session_state['usuario']]
+
+
+cobranzas=st.session_state["cobranzas"]
 clientes=st.session_state["clientes"]
+
 
 
 #funciones que generan datos fuera de esta pagina
@@ -78,82 +109,113 @@ def generar_fechas_prestamos(fecha_registro:str, frecuencia:str, cuotas:int):
         return date.today().strftime("%d-%m-%Y")
     return fechas
 
-def crear_cobranzas(data,vencimiento=None):
-    fechas=generar_fechas_prestamos(data[1],data[6], data[4])
-    i=1
+def crear_cobranzas(data):
+    #sacar los datos del prestamo
+    id=data[0]
+    fecha_entrega=data[1]
+    nombre=data[2]
+    vendedor=data[3]
+    cantidad_cuotas=data[4]
+    entregado=data[5]
+    capital=entregado
+    frecuencia=data[6]
+    TNM=data[9]
+    monto_por_cuota=float(data[10])
+    
+    fechas=generar_fechas_prestamos(fecha_entrega,frecuencia, cantidad_cuotas)
+
+    
+
+    tasa_decimal = TNM / 100
+
+    cuota_pura=capital*((((1+tasa_decimal)**cantidad_cuotas)*tasa_decimal)/(((1+tasa_decimal)**cantidad_cuotas)-1))
+
+    iva=cuota_pura*0.21
+
+    interes=capital*tasa_decimal
+
+    amortizacion=cuota_pura-interes
+
+    montos=[interes,amortizacion]
+    
+
+    i=0
     for fecha in fechas:
+        interes=montos[0][i]
+        amortizacion=montos[1][i]
         nueva_cobranza=[
-            int(st.session_state['cobranzas']['id'].max())+i,
-            data[3],
-            data[2],
-            int(i),
-            float(data[10]),
+            int(st.session_state['cobranzas']['id'].max())+i+1,
+            id,
+            entregado,
+            TNM,
+            cantidad_cuotas,
+            vendedor,
+            nombre,
+            i,
+            monto_por_cuota,
             fecha,
             0,
             0,
-            float(data[10]),
-            0.0,
-            0.0,
+            capital,
+            cuota_pura,
+            interes,
+            amortizacion,
+            iva,
+            monto_por_cuota,
+            0,
+            0,
             'pendiente de pago',
             '',
-            data[0],
             '',
             ''
             ]
+        capital-=amortizacion
+        interes=capital*tasa_decimal
+        cuota_pura-=interes
         i+=1
+        montos.append([interes,amortizacion])
         login.append_data(nueva_cobranza,st.secrets['ids']['cobranzas'])
 
 def egreso_caja(data):
+    fecha_entrega=data[1]
+    cantidad_cuotas=data[4]
+    entregado=data[5]
+    monto_por_cuota=float(data[10])
+
     caja=st.session_state["mov"]
     caja['saldo'] = pd.to_numeric(caja['saldo'], errors='coerce')
     mov=[
-        data[1],
-        f"ENTREGA {data[5]}, PLAN {data[4]} CUOTAS DE {data[10]}",
+        fecha_entrega,
+        f"ENTREGA {entregado}, PLAN {cantidad_cuotas} CUOTAS DE {monto_por_cuota}",
         0,
-        data[5],
-        -data[5],
-        caja['saldo'].sum()-data[5]
+        entregado,
+        -entregado,
+        caja['saldo'].sum()-entregado
         ]
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 
 
 def reporte_venta(data):
+    id=data[0]
+    fecha_entrega=data[1]
+    nombre=data[2]
+    vendedor=data[3]
+    cantidad_cuotas=data[4]
+    entregado=data[5]
+    TNM=data[9]
+
     venta=[
-        str(data[3]),
-        str(data[1]),
-        str(data[2]),
-        int(data[0]),
-        int(data[4]),
-        float(data[5])
+        vendedor,
+        fecha_entrega,
+        nombre,
+        id,
+        cantidad_cuotas,
+        entregado
         ]
     login.append_data(venta,st.secrets['ids']['repo_ventas'])
 
 
 
-
-
-import pandas as pd
-#inicializando los datos de los prestamos
-idc=st.secrets['ids']['prestamos']
-url=st.secrets['urls']['prestamos']
-
-def load():
-    return login.load_data(url)
-def delete(index):#borra una fila completa y acomoda el resto de la hoja para que no quede el espacio en blanco
-    login.delete_data(index,idc)
-def save(id,column,data):#modifica un solo dato
-    login.save_data(id,column,data,idc)
-def new(data):#añade una columna entera de datos
-    login.append_data(data,idc)
-
-
-login.generarLogin()
-
-
-st.session_state['prestamos']=load()
-
-if 'page' not in st.session_state:
-    st.session_state["page"] = "main"  # Página por defecto
 
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
@@ -171,9 +233,11 @@ import math
 def redondear_mil_condicional(numero, umbral=50):
     resto = numero % 1000  # Obtiene los últimos tres dígitos
     if resto < umbral:
-        return int(math.floor(numero / 100) * 100)  # Redondea hacia abajo
+        redondeo=int(math.floor(numero / 100) * 100)
+        return redondeo,numero-redondeo  # Redondea hacia abajo
     else:
-        return int(math.ceil(numero / 100) * 100)   # Redondea hacia arriba
+        redondeo=int(math.ceil(numero / 100) * 100)
+        return redondeo, redondeo-numero   # Redondea hacia arriba
 
 
 #formulario para crear prestamo
@@ -195,7 +259,7 @@ def crear():
         monto=0.0
         if st.checkbox('calcular monto por cuota'):
             monto_final=interes+amortizacion+iva
-            monto_final=redondear_mil_condicional(monto_final)
+            monto_final,redondeo=redondear_mil_condicional(monto_final)
             st.write(monto_final)
         else:
             monto_final=st.number_input('Monto Cuota',min_value=0.0, step=1000.0,key='monto',value=monto)
@@ -222,7 +286,7 @@ def crear():
                 ],key='estadoo')     
         with col2:
             vendedor=st.selectbox('vendedor',vendedores)
-            venc_dia=st.selectbox("Selecciona un tipo de vencimiento", ['Mensual: 1-10',
+            venc=st.selectbox("Selecciona un tipo de vencimiento", ['Mensual: 1-10',
                                                                               'Mensual: 10-20',
                                                                               'Mensual: 20-30',
                                                                               'Quincenal',
@@ -244,17 +308,18 @@ def crear():
             vendedor,
             cantidad_cuotas,
             capital,
-            venc_dia,
+            venc,
             estado,
             producto_asociado,
             TNM,
             monto_final,
+            redondeo,
             obs]
         new(nuevo_prestamo)
         egreso_caja(nuevo_prestamo)
         reporte_venta(nuevo_prestamo)
         crear_cobranzas(nuevo_prestamo)
-        login.historial(['nuevo prestamo','fecha','nombre','vendedor','cantidad','capital','vencimiento','estado','asociado','tnm','monto','obs'],nuevo_prestamo)
+        login.historial(['nuevo prestamo','fecha','nombre','vendedor','cantidad','capital','vence','estado','asociado','tnm','monto','redondeo','obs'],nuevo_prestamo)
 
 #formulario de edición de prestamos, prestamo es un df de pandas de una fila
 def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existentes
@@ -323,7 +388,7 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
             save(prestamo['id'],col,dato)
             st.rerun()
 #mostrar los prestamos vigentes con los botones interactivos
-
+import numpy as np
 
 def display_table():
     df = st.session_state["prestamos"]
@@ -357,13 +422,19 @@ def display_table():
             with st.container(border=True):
                 col1, col2, col3,col4 = st.columns(4)
                 with col1:
-                    st.write(f"**Fecha:** {str(row['fecha'])[0:10]} |**Capital:** {row['capital']}")
+                    st.write(f"**Fecha:** {str(row['fecha'])[0:10]} \n", unsafe_allow_html=True)
+                    st.write(f"**Capital:** {row['capital']} \n ", unsafe_allow_html=True)
+                    st.write(f"**Monto por cuota:** {row['capital']} \n ", unsafe_allow_html=True)
+                    if not(row['redondeo'] in [np.nan,'',0]):
+                        st.write(f"**Redondeo:** {row['redondeo']}", unsafe_allow_html=True)
+
+
                 if st.session_state['user_data']['permisos'].iloc[0]=='admin':
                     with col2:
-                        st.write(f"**Cliente:** {row['nombre']}")
+                        st.write(f"**Cliente:** {row['nombre']}\n", unsafe_allow_html=True)
                         st.write(f"**Nro de cuotas:** {row['cantidad']}")
                     with col3:
-                        st.write(f"vendedor:{row['vendedor']}")
+                        st.write(f"vendedor:{row['vendedor']}\n", unsafe_allow_html=True)
                         st.write(f"vencimiento:{row['vence']}")
                     with col4:
                         new_estado = st.selectbox(
@@ -382,9 +453,11 @@ def display_table():
                             #editar(row)
                 else:
                     with col2:
-                        st.write(f"**Cliente:** {row['nombre']}")
-                    with col3:
+                        st.write(f"**Cliente:** {row['nombre']}\n", unsafe_allow_html=True)
                         st.write(f"**Nro de cuotas:** {row['cantidad']}")
+                    with col3:
+                        st.write(f"vencimiento:{row['vence']}\n", unsafe_allow_html=True)
+                        st.write(f"{row['estado']}")
     else:
         st.warning("No se encontraron resultados.")
     # Controles de paginación

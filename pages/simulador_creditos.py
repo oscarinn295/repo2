@@ -3,6 +3,18 @@ import login
 
 login.generarLogin()
 
+import math
+
+
+def redondear_mil_condicional(numero, umbral=50):
+    resto = numero % 1000  # Obtiene los últimos tres dígitos
+    if resto < umbral:
+        redondeo=int(math.floor(numero / 100) * 100)
+        return redondeo,numero-redondeo  # Redondea hacia abajo
+    else:
+        redondeo=int(math.ceil(numero / 100) * 100)
+        return redondeo, redondeo-numero   # Redondea hacia arriba
+
 st.title("Simulador Crédito")
 
 # Entrada de datos
@@ -18,10 +30,11 @@ if monto_total > 0 and tasa_nominal_mensual > 0 and plazo > 0:
     iva=cuota_pura*IVA
     interes=monto_total*tasa_decimal
     amortizacion=cuota_pura-interes
-    cuota_mensual=interes+amortizacion+iva
+    cuota_mensual,redondeo=redondear_mil_condicional(interes+amortizacion+iva)
+    # Resultados
+    st.subheader("Resultados:")
+    st.write(f"Cuota fija por mes: ${cuota_mensual:,.2f}")
+    st.write(f"redondeando: ${redondeo:,.2f}")
 else:
     cuota_mensual = 0.0
 
-# Resultados
-st.subheader("Resultados:")
-st.write(f"Cuota fija por mes: ${cuota_mensual:,.2f}")
