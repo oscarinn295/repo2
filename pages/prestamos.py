@@ -5,6 +5,8 @@ from datetime import datetime
 from datetime import date
 from dateutil.relativedelta import relativedelta
 import pandas as pd
+import math
+
 #inicializando los datos de los prestamos
 idc=st.secrets['ids']['prestamos']
 url=st.secrets['urls']['prestamos']
@@ -164,7 +166,7 @@ def crear_cobranzas(data):
             monto_por_cuota,
             0,
             0,
-            'pendiente de pago',
+            'Pendiente de pago',
             '',
             '',
             ''
@@ -251,7 +253,17 @@ def crear():
                                                     step=1,key='cant')
         capital = st.number_input("Capital*", min_value=0.0, step=1000.0,key='capital')
     with col2:
-        TNM=st.number_input('T.N.M*', min_value=0.1, step=0.1,key='tnm')
+        tipo=st.selectbox('Tasa nominal (%):',['mensual','quincenal','semanal','otra tasa'])
+        if tipo=='mensual':
+            TNM=18
+        elif tipo=='quincenal':
+            TNM=14
+        elif tipo=='semanal':
+            TNM=6.5
+        else:
+            TNM = st.number_input("Tasa nominal mensual (%):", min_value=1.0, step=0.01, format="%.2f")
+        if tipo in ['mensual','quincenal','semanal']:
+            st.write(f"Tasa nominal (%): {TNM}")
         tasa_decimal = TNM / 100
         cuota_pura=capital*((((1+tasa_decimal)**cantidad_cuotas)*tasa_decimal)/(((1+tasa_decimal)**cantidad_cuotas)-1))
         iva=cuota_pura*IVA
@@ -260,10 +272,16 @@ def crear():
         monto=0.0
         if st.checkbox('calcular monto por cuota'):
             monto_final=interes+amortizacion+iva
-            monto_final,redondeo=redondear_mil_condicional(monto_final)
-            st.write(monto_final)
+            if cantidad_cuotas==1:
+                monto_final,redondeo=redondear_mil_condicional(capital*(1+tasa_decimal))
+            elif cantidad_cuotas==2:
+                monto_final,redondeo=redondear_mil_condicional((capital*(1+(tasa_decimal))**2)/2)
+            else:
+                monto_final,redondeo=redondear_mil_condicional(interes+amortizacion+iva)
+            redondeo=math.trunc(redondeo)
+            st.write(f'Monto Fijo por Cuota:{monto_final}, Redondeo: {redondeo}')
         else:
-            monto_final=st.number_input('Monto Cuota',min_value=0.0, step=1000.0,key='monto',value=monto)
+            monto_final=st.number_input('Monto Fijo por Cuota',min_value=0.0, step=1000.0,key='monto',value=monto)
     with st.form('crear_prestamo'):
         fecha =  date.today()
         col1, col2 = st.columns(2)
@@ -280,7 +298,7 @@ def crear():
                 "aceptado",
                 "liquidado",
                 "al dia",
-                "en mora",
+                "En mora",
                 "en juicio",
                 "cancelado",
                 "finalizado"
@@ -345,7 +363,7 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
                 "aceptado",
                 "liquidado",
                 "al dia",
-                "en mora",
+                "En mora",
                 "en juicio",
                 "cancelado",
                 "finalizado"
@@ -355,7 +373,7 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
                 "aceptado",
                 "liquidado",
                 "al dia",
-                "en mora",
+                "En mora",
                 "en juicio",
                 "cancelado",
                 "finalizado"].index(estado),key=f'estadoo_{prestamo['id']}')
@@ -441,9 +459,9 @@ def display_table():
                         new_estado = st.selectbox(
                             "Estado*", 
                             ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
-                            "al dia", "en mora", "en juicio", "cancelado", "finalizado"],
+                            "al dia", "En mora", "en juicio", "cancelado", "finalizado"],
                             index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
-                                "al dia", "en mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
+                                "al dia", "En mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
                             key=f"estado_{idx}"
                         )
                         # Agregar cambios si el estado cambió
@@ -487,7 +505,7 @@ def display_table():
         st.dataframe(df)
     with st.expander('ver morosos'):
         st.subheader("morosos")
-        moras=cobranzas[cobranzas['estado']=='en mora']
+        moras=cobranzas[cobranzas['estado']=='En mora']
         morosos=df[df['id'].isin(moras['prestamo_id'].unique())]
         st.dataframe(morosos)
 

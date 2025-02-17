@@ -88,7 +88,7 @@ with col6:
 
         # Reemplazar NaN y NaT en todas las columnas
         cobranzas = cobranzas.replace({np.nan: "", pd.NaT: ""})
-        cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>date.today(),'estado']='pendiente de pago'
+        cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>date.today(),'estado']='Pendiente de pago'
         cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
         # Solución específica para la columna 'fecha_cobro'
         cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha_cobro'], errors='coerce').dt.strftime('%d-%m-%Y')
@@ -130,14 +130,14 @@ def registrar(cobranza):
         fecha_cobro=fecha_cobro.strftime("%d-%m-%Y")
     pago = st.selectbox(
         'Monto',
-        ['pago', f"pago total: {cobranza['monto_recalculado_mora']}", 'otro monto'],
+        ['pago', f"Pago total: {cobranza['monto_recalculado_mora']}", 'otro monto'],
         index=0,
         key=f"pago{cobranza['id']}"
     )
 
-    if 'pago total' in pago:
+    if 'Pago total' in pago:
         monto = cobranza['monto_recalculado_mora']
-        registro = 'pago total'
+        registro = 'Pago total'
         st.write(f'monto a pagar: {monto}')
     elif 'otro monto' in pago:
         monto = st.number_input(
@@ -148,10 +148,10 @@ def registrar(cobranza):
             step=1000.0,
             key=f"monto_{cobranza['id']}"
         )
-        registro = 'pago parcial' if monto < cobranza['monto_recalculado_mora'] else 'pago total'
+        registro = 'Pago parcial' if monto < cobranza['monto_recalculado_mora'] else 'Pago total'
 
     medio_pago = st.selectbox(
-        'Seleccione una opción', 
+        'Medio de pago', 
         ['Seleccione una opción', 'efectivo', 'transferencia','mixto'], 
         key=f"medio_{cobranza['id']}"
     )
@@ -189,6 +189,7 @@ def registrar(cobranza):
 
         ingreso(cobranza, registro)
         st.session_state['cobranzas'] = load()
+        #login.historial()
         st.rerun()
 
 
@@ -197,7 +198,7 @@ def no_abono(cobranza):
     import numpy as np
     cobranza['vencimiento'] = str(cobranza['vencimiento'])
     cobranza = cobranza.replace({np.nan: ""}) 
-    save(cobranza['id'],'estado','en mora')
+    save(cobranza['id'],'estado','En mora')
     st.rerun()
 
 if 'pagina_actual' not in st.session_state:
@@ -206,18 +207,18 @@ st.session_state['cobranzas']['id'] = pd.to_numeric(st.session_state['cobranzas'
 
 
 clientes=st.session_state['clientes']['nombre'].values.tolist()
+estados=['Pendiente de pago','En mora','Pago total','Pago parcial']
 def display_table():
     # Crear una copia del DataFrame original
     df = st.session_state["cobranzas"].copy()
-    # Convertir 'vencimiento' a datetime para facilitar el filtrado
     df['vencimiento_dt'] = pd.to_datetime(df['vencimiento'], errors='coerce')
-    col1,col2,col3,col4=st.columns(4)
-    # Filtros en un expander
+    
+    col1, col2, col3, col4 = st.columns(4)
+
     with col4:
         with st.popover("Filtros"):
             reset = st.button("Resetear filtros")
-            
-            # Filtro de fecha opcional
+
             aplicar_fecha = st.checkbox("Filtrar por fecha", value=False)
             if aplicar_fecha:
                 desde = st.date_input("Desde", value=date.today())
@@ -225,63 +226,73 @@ def display_table():
             else:
                 desde, hasta = None, None
             
-            # Filtros de cliente y vendedor con opción "Todos"
             cliente = st.selectbox("Cliente", ["Todos"] + clientes, key='filtro1')
-            vendedor = st.selectbox("Vendedor", ["Todos"] +vendedores, key='filtro2')
+            vendedor = st.selectbox("Vendedor", ["Todos"] + vendedores, key='filtro2')
+            estado = st.selectbox("Estado", ["Todos"] + estados, key='filtro3')
 
-    # Si no se pulsa reset, aplicamos filtros acumulativos
     if not reset:
         if aplicar_fecha and desde and hasta:
-            df = df[(df['vencimiento_dt'] >= pd.Timestamp(desde)) &
+            df = df[(df['vencimiento_dt'] >= pd.Timestamp(desde)) & 
                     (df['vencimiento_dt'] <= pd.Timestamp(hasta))]
         if cliente != "Todos":
             df = df[df['nombre'] == cliente]
-        # Para el filtro de vendedor:
+        if estado != "Todos":
+            df = df[df['estado'] == estado]
         if st.session_state['user_data']['permisos'].iloc[0] == 'admin':
             if vendedor != "Todos":
                 df = df[df['vendedor'] == vendedor]
         else:
-            # Usuario no admin: filtrar siempre por su usuario
             df = df[df['vendedor'] == st.session_state['usuario']]
     else:
-        # Si se pulsa reset, se recarga el DataFrame original
         df = st.session_state["cobranzas"].copy()
 
-    # --- Paginación y despliegue del DataFrame filtrado ---
     ITEMS_POR_PAGINA = 10
     total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
     inicio = (st.session_state['pagina_actual'] - 1) * ITEMS_POR_PAGINA
     fin = inicio + ITEMS_POR_PAGINA
     df_paginado = df.iloc[inicio:fin]
-    
+
     if not df_paginado.empty:
         for idx, row in df_paginado.iterrows():
-            with st.container():
+            with st.container(border=True):
                 col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(8)
+
                 with col1:
-                    st.write(f"**Vencimiento**: {row['vencimiento']}")
+                    st.write(f"**Vencimiento**:")
+                    st.write(f"{row['vencimiento']}")
+                
                 with col2:
-                    st.write(f"Vendedor: {row['vendedor']} \n", unsafe_allow_html=True)
-                    st.write(f"**Cliente**: {row['nombre']}")
+                    st.write(f"**Vendedor**: {row['vendedor']}")
+                    st.write(f"**Cliente**: \n",unsafe_allow_html=True)
+                    st.write(f"{row['nombre']}")
+
                 with col3:
-                    st.write(f"**Cuota**: {row['n_cuota']} \n", unsafe_allow_html=True)
-                    st.write(f"**Monto**: {row['monto']}")
+                    st.write(f"**Cuota**: {row['n_cuota']}")
+                    st.write(f"**Monto**: ${float(row['monto']):,.2f}")
+
                 with col4:
-                    st.write(f"Amortización: {row['amortizacion']} \n", unsafe_allow_html=True)
-                    st.write(f"Intereses: {row['intereses']} \n", unsafe_allow_html=True)
-                    st.write(f"IVA: {row['iva']}")
+                    st.write(f"**Amortización**: ${float(row['amortizacion']):,.2f}")
+                    st.write(f"**Intereses**: ${float(row['intereses']):,.2f}")
+                    st.write(f"**IVA**: ${float(row['iva']):,.2f}")
+
                 with col5:
-                    st.write(f"Monto Recalculado (+Mora): {row['monto_recalculado_mora']} \n", unsafe_allow_html=True)
+                    st.write(f"**Monto a pagar**: ${row['monto_recalculado_mora']:,.2f}")
+
                 with col6:
-                    st.write(f"Monto Pago: {row['pago']} \n",unsafe_allow_html=True)
-                    st.write(f"Redondeo: {row['redondeo']}")
+                    if not pd.isna(row['pago']):
+                        st.write(f"**Monto Pago**: ${float(row['pago']):,.2f}")
+                        st.write(f"**Redondeo**: ${float(row['redondeo']):,.2f}")
+
                 with col7:
+                    st.write(f"**Estado**: \n", unsafe_allow_html=True)
                     st.write(f"{row['estado']}")
+
                 with col8:
                     with st.popover('Actualizar'):
                         registrar(row)
     else:
         st.warning("No se encontraron resultados.")
+
 
     # --- Controles de paginación ---
     with st.container():
@@ -307,13 +318,21 @@ def display_table():
     if not reset:
         with st.expander('datos filtrados'):
             st.subheader("Pendientes de pago")
-            st.dataframe(df[df['estado'] == 'pendiente de pago'])
+            st.dataframe(df[df['estado'] == 'Pendiente de pago'])
 
             st.subheader("En mora")
-            st.dataframe(df[df['estado'] == 'en mora'])
+            st.dataframe(df[df['estado'] == 'En mora'])
 
             st.subheader("Pagados")
-            st.dataframe(df[df['estado'] == 'pago total'])
+            st.dataframe(df[df['estado'] == 'Pago total'])
+            st.subheader("Pagos parciales")
+            st.dataframe(df[df['estado'] == 'Pago parcial'])
+            st.subheader('Pendientes de actualizacion: ')
+            # Convertir la columna 'vencimiento' a tipo datetime
+            df['vencimiento'] = pd.to_datetime(df['vencimiento'], format='%d-%m-%Y')
+            # Filtrar los registros vencidos con estado 'Pendiente de pago'
+            df_vencidos = df[(df['vencimiento'] < pd.Timestamp.today()) & (df['estado'] == 'Pendiente de pago')]
+            st.dataframe(df_vencidos)
 st.title("Cobranzas")
 display_table()
 with st.expander('Ver todos los datos'):

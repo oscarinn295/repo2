@@ -14,10 +14,10 @@ def ordenar_cobranzas(df):
     # Creamos una clave de orden basada en las reglas definidas
     condiciones = [
         (df['vencimiento'] >= hoy),  # Fechas desde hoy en adelante
-        (df['vencimiento'] < hoy) & (df['estado'] == 'pendiente de pago'),  # Anteriores a hoy y pendientes de pago
-        (df['estado'] == 'pago parcial'),  # Pago parcial
-        (df['estado'] == 'en mora'),  # En mora
-        (df['estado'] == 'pago total')  # Pago total
+        (df['vencimiento'] < hoy) & (df['estado'] == 'Pendiente de pago'),  # Anteriores a hoy y pendientes de pago
+        (df['estado'] == 'Pago parcial'),  # Pago parcial
+        (df['estado'] == 'En mora'),  # En mora
+        (df['estado'] == 'Pago total')  # Pago total
     ]
 
     valores_orden = [0, 2, 3, 4, 5]  # Cambio: Ponemos las fechas futuras con orden 0
@@ -72,8 +72,8 @@ def calcular_recargo(cobranza):
 
     dias_mora = (hoy - pd.to_datetime(cobranza['vencimiento'])).days
 
-    # Si la fecha es futura o el estado es "pago total", mantener los valores originales
-    if dias_mora <= 0 or cobranza['estado'] == 'pago total':
+    # Si la fecha es futura o el estado es "Pago total", mantener los valores originales
+    if dias_mora <= 0 or cobranza['estado'] == 'Pago total':
         return pd.Series([cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']], 
                          index=['dias_mora', 'mora', 'monto_recalculado_mora'])
 

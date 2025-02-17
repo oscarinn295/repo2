@@ -19,8 +19,8 @@ quieren ver cuanto juntaron de amortización e intereses por mes
 tambien quiere una planilla de gastos
 ojo con el historial, le estan haciendo mucho incapié, preparar plantillas de mensaje completas para cada tipo de movimiento
 
-recopilar información sobre la plata en la calle
-lo que se tiene que recaudar, semanal y mensualmente
-preparar un mensaje de alerta por cada moroso/cobranza sin pagar
 
-fijarse con lo de registrar las cobranzas, dejar un saldo a favor si se paga de mas y transferirlo
+
+fijarse con lo de registrar las cobranzas, dejar un saldo a favor si se paga de mas y transferirlo, 
+
+añadir el estado de irregular a las cobranzas y desarrollar un nuevo sistema para morosos

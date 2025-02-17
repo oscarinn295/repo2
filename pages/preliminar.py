@@ -215,7 +215,7 @@ def prestamo():
                 "aceptado",
                 "liquidado",
                 "al dia",
-                "en mora",
+                "En mora",
                 "en juicio",
                 "cancelado",
                 "finalizado"
@@ -282,7 +282,7 @@ def registrar_cobranza():
         n_cuotas=prest2[3]
         entregado=prest2[4]
     prestamox=[fecha,client,frecuencia,n_cuotas,entregado]
-    registro=st.selectbox('monto',['pago total','pago parcial'])
+    registro=st.selectbox('monto',['Pago total','Pago parcial'])
     monto = st.number_input("Monto", min_value=0.0, step=1000.0)
     medio_pago = st.selectbox('Seleccione una opción', ['Seleccione una opción', 'efectivo', 'transferencia'])
 

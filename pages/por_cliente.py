@@ -69,7 +69,7 @@ else:
 
             with col1:
                 st.subheader('Pagados')
-                pagados = cobranzas_cliente[cobranzas_cliente['estado'] == 'pago total']
+                pagados = cobranzas_cliente[cobranzas_cliente['estado'] == 'Pago total']
                 if pagados.empty:
                     st.write("No hay pagos registrados.")
                 else:
@@ -77,7 +77,7 @@ else:
 
             with col2:
                 st.subheader('Atrasados')
-                atrasados = cobranzas_cliente[cobranzas_cliente['estado'] == 'en mora']
+                atrasados = cobranzas_cliente[cobranzas_cliente['estado'] == 'En mora']
                 if atrasados.empty:
                     st.write("No hay pagos atrasados.")
                 else:
@@ -85,7 +85,7 @@ else:
 
             with col3:
                 st.subheader('Pendientes')
-                pendientes = cobranzas_cliente[cobranzas_cliente['estado'] == 'pendiente de pago']
+                pendientes = cobranzas_cliente[cobranzas_cliente['estado'] == 'Pendiente de pago']
                 if pendientes.empty:
                     st.write("No hay pagos pendientes.")
                 else:

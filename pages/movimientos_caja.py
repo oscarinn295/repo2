@@ -49,7 +49,7 @@ def display_table(search_query=""):
     # Filtrar datos según la consulta de búsqueda
     df = st.session_state["mov"]
     if search_query:
-        df = df[df.apply(lambda row: search_query.lower() in row.to_string().lower(), axis=1)]
+        df = df[df.apply(lambda row: search_query in row.to_string(), axis=1)]
 
     if not df.empty:
         st.dataframe(df)  # Usar una tabla simple para mostrar los datos

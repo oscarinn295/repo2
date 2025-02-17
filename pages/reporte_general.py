@@ -38,7 +38,7 @@ prestamos_vigentes=prestamos.shape[0]
 clientes=st.session_state["clientes"]
 cobranzas=st.session_state["cobranzas"]
 
-moras=cobranzas[cobranzas['estado']=='en mora']
+moras=cobranzas[cobranzas['estado']=='En mora']
 cartones_morosos=prestamos[prestamos['id'].isin(moras['prestamo_id'].unique())]
 morosos=clientes[clientes['nombre'].isin(cartones_morosos['nombre'].unique())]
 
@@ -81,7 +81,7 @@ df_prestamos_vendedor=pd.DataFrame({
 })
 
 
-moras=cobranzas[cobranzas['estado']=='en mora']
+moras=cobranzas[cobranzas['estado']=='En mora']
 cartones_morosos=prestamos[prestamos['id'].isin(moras['prestamo_id'].unique())]
 morosos=clientes[clientes['nombre'].isin(cartones_morosos['nombre'].unique())]
 cant_morosos=[morosos[morosos['vendedor']==vendedor].shape[0] for vendedor in vendedores]
@@ -101,6 +101,30 @@ with st.container(border=True):
         st.dataframe(df_prestamos_vendedor)
     with col3:
         st.dataframe(df_morosos_vendedor)
+
+from datetime import datetime
+
+# Obtener la fecha actual
+fecha_actual = datetime.now()
+
+# Extraer mes y año
+mes = fecha_actual.month
+año = fecha_actual.year
+with st.container(border=True):
+    st.subheader(f'Resultados esperados periodo: {mes} - {año}')
+    col1,col2,col3=st.columns(3)
+    with col1:
+        st.subheader('Cobranzas semanales')
+        st.write('en desarrollo')
+    with col2:
+        st.subheader('Cobranzas quincenales')
+        st.write('en desarrollo')
+    with col3:
+        st.subheader('Cobranzas durante el mes')
+        st.write('en desarrollo')
+with st.container(border=True):
+    st.subheader('Plata en la calle')
+    st.write('en desarrollo')
 
 with st.expander('ver movimientos de caja'):
     st.subheader('movimientos de caja')

@@ -246,7 +246,7 @@ def display_table(search_query=""):
             st.rerun()
     with st.expander('ver morosos'):
         st.subheader("morosos")
-        moras=cobranzas[cobranzas['estado']=='en mora']
+        moras=cobranzas[cobranzas['estado']=='En mora']
         cartones_morosos=prestamos[prestamos['id'].isin(moras['prestamo_id'].unique())]
         morosos=df[df['nombre'].isin(cartones_morosos['nombre'].unique())]
         st.dataframe(morosos)

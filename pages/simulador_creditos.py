@@ -19,9 +19,18 @@ st.title("Simulador Crédito")
 
 # Entrada de datos
 monto_total = st.number_input("Monto total ($):", min_value=0.0, step=100.0, format="%.2f")
-plazo = st.selectbox("Plazo (Meses):", [3, 6, 9, 12])
-tasa_nominal_mensual = st.number_input("Tasa nominal mensual (%):", min_value=0.0, step=0.01, format="%.2f")
-
+plazo = st.number_input('cantidad de cuotas',min_value=1,step=1)
+tipo=st.selectbox('Tasa nominal (%):',['mensual','quincenal','semanal','otra tasa'])
+if tipo=='mensual':
+    tasa_nominal_mensual=18
+elif tipo=='quincenal':
+    tasa_nominal_mensual=14
+elif tipo=='semanal':
+    tasa_nominal_mensual=6.5
+else:
+    tasa_nominal_mensual = st.number_input("Tasa nominal (%):", min_value=0.0, step=0.01, format="%.2f")
+if tipo in ['mensual','quincenal','semanal']:
+    st.write(f"Tasa nominal (%): {tasa_nominal_mensual}")
 # Cálculo de la cuota fija mensual usando la fórmula de anualidades
 IVA=0.21
 if monto_total > 0 and tasa_nominal_mensual > 0 and plazo > 0:
@@ -30,10 +39,15 @@ if monto_total > 0 and tasa_nominal_mensual > 0 and plazo > 0:
     iva=cuota_pura*IVA
     interes=monto_total*tasa_decimal
     amortizacion=cuota_pura-interes
-    cuota_mensual,redondeo=redondear_mil_condicional(interes+amortizacion+iva)
+    if plazo==1:
+        cuota_mensual,redondeo=redondear_mil_condicional(monto_total*(1+tasa_decimal))
+    elif plazo==2:
+        cuota_mensual,redondeo=redondear_mil_condicional((monto_total*(1+(tasa_decimal))**2)/2)
+    else:
+        cuota_mensual,redondeo=redondear_mil_condicional(interes+amortizacion+iva)
     # Resultados
     st.subheader("Resultados:")
-    st.write(f"Cuota fija por mes: ${cuota_mensual:,.2f}")
+    st.write(f"Monto fijo por cuota: ${cuota_mensual:,.2f}")
     st.write(f"redondeando: ${redondeo:,.2f}")
 else:
     cuota_mensual = 0.0
