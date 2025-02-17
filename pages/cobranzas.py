@@ -178,7 +178,7 @@ def registrar(cobranza):
             ('pago', cobranza.get('pago', 0) + monto),
             ('redondeo', 0.0),
             ('estado', registro),
-            ('medio de pago',medio_pago)
+            ('medio de pago',medio_pago),
             ('comprobante', comprobante),
             ('fecha_cobro', date.today().strftime('%d-%m-%Y')),
             ('monto', max(0, float(cobranza['monto']) - monto))

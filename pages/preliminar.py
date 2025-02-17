@@ -73,7 +73,7 @@ def cliente():
         
         if submit_button:
             nuevo_cliente = [
-                max(st.session_state['clientes']['id'])+1,
+                'nuevo cliente',
                 nombre,
                 vendedor,
                 scoring,
@@ -83,7 +83,7 @@ def cliente():
                 celular,
                 mail
             ]
-            actualizacion(['id','nombre','vendedor','scoring','direccion','fecha_nac','dni','celular','mail'],nuevo_cliente)
+            actualizacion(['','nombre','vendedor','scoring','direccion','fecha_nac','dni','celular','mail'],nuevo_cliente)
             st.success('Cliente guardado correctamente')
 
 import math
@@ -251,7 +251,8 @@ def prestamo():
             monto_final,
             obs]
         
-        actualizacion([st.session_state['usuario'],'fecha','nombre','vendedor','cantidad','capital','vence','estado','asociado','tnm','monto','obs'],nuevo_prestamo)
+        actualizacion(['','fecha','nombre','vendedor','cantidad','capital','vence','estado','asociado','tnm','monto','obs'],nuevo_prestamo)
+
 
 lista_clientes2 = ['no registrado'] + clientes
 
@@ -292,7 +293,7 @@ def registrar_cobranza():
     if submit_button:
         values=['nueva cobranza']+prestamox+[monto,registro,cobrador,date.today().strftime('%d-%m-%Y'),medio_pago]
         if medio_pago != 'Seleccione una opción' and monto > 0:
-            actualizacion([st.session_state['usuario'],'fecha','cliente','cantidad de cuotas','monto entregado','tipo de prestamo','pago','estado','cobrador','fecha_cobro','medio de pago'],values)
+            actualizacion(['','fecha','cliente','cantidad de cuotas','monto entregado','tipo de prestamo','pago','estado','cobrador','fecha_cobro','medio de pago'],values)
         else:
             st.warning('Faltan datos')
 

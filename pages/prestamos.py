@@ -136,13 +136,13 @@ def crear_cobranzas(data):
 
     amortizacion=cuota_pura-interes
 
-    montos=[interes,amortizacion]
+    montos=[[interes,amortizacion]]
     
 
     i=0
     for fecha in fechas:
-        interes=montos[0][i]
-        amortizacion=montos[1][i]
+        interes=montos[i][0]
+        amortizacion=montos[i][1]
         nueva_cobranza=[
             int(st.session_state['cobranzas']['id'].max())+i+1,
             id,
@@ -175,6 +175,7 @@ def crear_cobranzas(data):
         i+=1
         montos.append([interes,amortizacion])
         login.append_data(nueva_cobranza,st.secrets['ids']['cobranzas'])
+        st.session_state['cobranzas']=login.load_data(st.secrets['urls']['cobranzas'])
 
 def egreso_caja(data):
     fecha_entrega=data[1]

@@ -166,6 +166,7 @@ def crear():
             ]
             new(nuevo_cliente)
             st.success('Cliente guardado correctamente')
+            st.session_state['clientes']=load()
 
     #login.historial(nuevo_cliente,'nuevo cliente')
 
