@@ -175,7 +175,7 @@ def registrar(cobranza):
         monto=float(monto)
         actualizacion = [
             ('cobrador', cobrador),
-            ('pago', cobranza.get('pago', 0) + monto),
+            ('pago', float(cobranza.get('pago', 0)) + monto),
             ('redondeo', 0.0),
             ('estado', registro),
             ('medio de pago',medio_pago),
