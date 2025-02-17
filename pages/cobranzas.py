@@ -171,7 +171,7 @@ def registrar(cobranza):
             return
 
         cobranza['vencimiento'] = str(cobranza['vencimiento'])
-        cobranza = cobranza.replace({np.nan: ""})
+        cobranza = cobranza.replace({np.nan: 0})
         monto=float(monto)
         actualizacion = [
             ('cobrador', cobrador),
