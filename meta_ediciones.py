@@ -50,16 +50,16 @@ def calcular_recargo(cobranza):
     vencimiento = prestamo['vence'].iloc[0]
     
     tipo_prestamo = {
-        'Mensual: 1-10': 300,
-        'Mensual: 10-20': 300,
-        'Mensual: 20-30': 300,
-        'Quincenal': 500,
-        'Semanal: lunes': 400,
-        'Semanal: martes': 400,
-        'Semanal: miercoles': 400,
-        'Semanal: jueves': 400,
-        'Semanal: viernes': 400,
-        'Semanal: sabado': 400,
+        'Mensual: 1-10': 500,
+        'Mensual: 10-20': 500,
+        'Mensual: 20-30': 500,
+        'Quincenal': 400,
+        'Semanal: lunes': 300,
+        'Semanal: martes': 300,
+        'Semanal: miercoles': 300,
+        'Semanal: jueves': 300,
+        'Semanal: viernes': 300,
+        'Semanal: sabado': 300,
         'indef': 0
     }
     
