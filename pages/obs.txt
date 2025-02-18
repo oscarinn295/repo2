@@ -24,3 +24,12 @@ ojo con el historial, le estan haciendo mucho incapié, preparar plantillas de m
 fijarse con lo de registrar las cobranzas, dejar un saldo a favor si se paga de mas y transferirlo, 
 
 añadir el estado de irregular a las cobranzas y desarrollar un nuevo sistema para morosos
+añadir boton de ver detalles en prestamos
+
+corregir todos los formatos de fechas
+empezar la cobranza por la cuota 1 porque anota desde 0
+
+hay unos floats
+
+es muy importante que se vea el producto asociado si es que existe
+
