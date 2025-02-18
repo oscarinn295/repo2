@@ -441,7 +441,7 @@ def display_table():
             with st.container(border=True):
                 col1, col2, col3,col4 = st.columns(4)
                 with col1:
-                    st.write(f"**Fecha:** {row['fecha'].strftime('%d-%m-%Y')} \n", unsafe_allow_html=True)
+                    st.write(f"**Fecha:** {row['fecha']} \n", unsafe_allow_html=True)
                     st.write(f"**Capital:** ${row['capital']:,.2f} \n ", unsafe_allow_html=True)
                     st.write(f"**Monto por cuota:** ${row['capital']:,.2f} \n ", unsafe_allow_html=True)
                     if not(row['redondeo'] in [np.nan,'',0]):
