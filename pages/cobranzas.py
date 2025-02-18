@@ -226,7 +226,6 @@ st.session_state['cobranzas']['id'] = pd.to_numeric(st.session_state['cobranzas'
 
 clientes=st.session_state['clientes']['nombre'].values.tolist()
 estados=['Pendiente de pago','En mora','Pago total','Pago parcial']
-from datetime import datetime as dtt
 def display_table():
     # Crear una copia del DataFrame original
     df = st.session_state["cobranzas"]
@@ -278,7 +277,7 @@ def display_table():
 
                 with col1:
                     st.write(f"**Vencimiento**:")
-                    st.write(f"{dtt.strptime(row['vencimiento'], '%d-%m-%Y').strftime('%d-%m-%Y')}")
+                    st.write(f"{row['vencimiento'].strftime('%d-%m-%Y')}")
                 
                 with col2:
                     st.write(f"**Vendedor**: {row['vendedor']}")
