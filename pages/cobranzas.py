@@ -180,7 +180,7 @@ def registrar(cobranza):
             ('estado', registro),
             ('medio de pago',medio_pago),
             ('comprobante', comprobante),
-            ('fecha_cobro', date.today().strftime('%d-%m-%Y')),
+            ('fecha_cobro', fecha_cobro),
             ('monto', max(0, float(cobranza['monto']) - monto)),
             ('obs',obs)
         ]
@@ -229,7 +229,7 @@ estados=['Pendiente de pago','En mora','Pago total','Pago parcial']
 from datetime import datetime as dtt
 def display_table():
     # Crear una copia del DataFrame original
-    df = st.session_state["cobranzas"].copy()
+    df = st.session_state["cobranzas"]
     df['vencimiento_dt'] = pd.to_datetime(df['vencimiento'], errors='coerce')
     
     col1, col2, col3, col4 = st.columns(4)

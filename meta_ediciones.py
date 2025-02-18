@@ -41,7 +41,8 @@ prestamos=login.load_data(st.secrets['urls']['prestamos'])
 # Definir función de recálculo
 def calcular_recargo(cobranza):
     prestamo = prestamos[prestamos['id'] == cobranza['prestamo_id']]
-    
+    cobranza['monto']=float(cobranza['monto'])
+
     # Si el préstamo no existe, mantener los valores originales
     if pd.isna(cobranza['prestamo_id']) or prestamo.empty:
         return pd.Series([cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']], 
@@ -79,7 +80,7 @@ def calcular_recargo(cobranza):
 
     # Si hay mora, calcular los intereses
     interes = tipo_prestamo.get(prestamo['vence'].iloc[0], 0)  # Asegurar que toma el tipo correcto
-    interes_por_mora = interes * max(0, dias_mora)
+    interes_por_mora = interes *  dias_mora
     monto_recalculado_mora = cobranza['monto'] + interes_por_mora
 
     return pd.Series([dias_mora, interes_por_mora, monto_recalculado_mora], 
