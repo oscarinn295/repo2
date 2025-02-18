@@ -21,7 +21,7 @@ st.session_state['clientes']=load()
 
 cobranzas=login.load_data(st.secrets['urls']['cobranzas'])
 prestamos=login.load_data(st.secrets['urls']['prestamos'])
-
+st.session_state['clientes']=load()
 if st.session_state['user_data']['permisos'].iloc[0]!='admin':
     cobranzas=cobranzas[cobranzas['vendedor']==st.session_state['usuario']]
     prestamos=prestamos[prestamos['vendedor']==st.session_state['usuario']]
@@ -174,11 +174,8 @@ def crear():
 
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
-
-    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-        df=df[df['vendedor']==st.session_state['usuario']]
-    else:
-        df = st.session_state["clientes"]
+    df=st.session_state['clientes']
+    df=df[df['vendedor']==st.session_state['usuario']]
     if search_query:
         df =df[df['nombre'].str.contains(search_query, case=False, na=False)]
     # Configuración de paginación

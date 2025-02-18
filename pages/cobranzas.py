@@ -218,7 +218,8 @@ def no_abono(cobranza):
         cobranza = cobranza.replace({np.nan: ""}) 
         save(cobranza['id'],'estado','En mora')
         st.session_state['cobranzas']=load()
-    login.historial(st.session_state['cobranzas'].columns.tolist(), cobranza.values.tolist())
+        cobranza.fillna('')
+        login.historial(st.session_state['cobranzas'].columns.tolist(), cobranza.values.tolist())
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
 st.session_state['cobranzas']['id'] = pd.to_numeric(st.session_state['cobranzas']['id'], errors='coerce').astype('Int64')
