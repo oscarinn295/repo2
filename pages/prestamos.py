@@ -409,7 +409,6 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
             st.rerun()
 #mostrar los prestamos vigentes con los botones interactivos
 import numpy as np
-
 def display_table():
     df = st.session_state["prestamos"]
     if st.session_state['user_data']['permisos'].iloc[0]!='admin':
@@ -442,17 +441,17 @@ def display_table():
             with st.container(border=True):
                 col1, col2, col3,col4 = st.columns(4)
                 with col1:
-                    st.write(f"**Fecha:** {str(row['fecha'])[0:10]} \n", unsafe_allow_html=True)
-                    st.write(f"**Capital:** {row['capital']} \n ", unsafe_allow_html=True)
-                    st.write(f"**Monto por cuota:** {row['capital']} \n ", unsafe_allow_html=True)
+                    st.write(f"**Fecha:** {row['fecha'].strftime('%d-%m-%Y')} \n", unsafe_allow_html=True)
+                    st.write(f"**Capital:** ${row['capital']:,.2f} \n ", unsafe_allow_html=True)
+                    st.write(f"**Monto por cuota:** ${row['capital']:,.2f} \n ", unsafe_allow_html=True)
                     if not(row['redondeo'] in [np.nan,'',0]):
-                        st.write(f"**Redondeo:** {row['redondeo']}", unsafe_allow_html=True)
+                        st.write(f"**Redondeo:** ${row['redondeo']:,.2f}", unsafe_allow_html=True)
 
 
                 if st.session_state['user_data']['permisos'].iloc[0]=='admin':
                     with col2:
                         st.write(f"**Cliente:** {row['nombre']}\n", unsafe_allow_html=True)
-                        st.write(f"**Nro de cuotas:** {row['cantidad']}")
+                        st.write(f"**Nro de cuotas:** {int(row['cantidad'])}")
                     with col3:
                         st.write(f"vendedor:{row['vendedor']}\n", unsafe_allow_html=True)
                         st.write(f"vencimiento:{row['vence']}")

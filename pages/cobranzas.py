@@ -226,6 +226,7 @@ st.session_state['cobranzas']['id'] = pd.to_numeric(st.session_state['cobranzas'
 
 clientes=st.session_state['clientes']['nombre'].values.tolist()
 estados=['Pendiente de pago','En mora','Pago total','Pago parcial']
+from datetime import datetime as dtt
 def display_table():
     # Crear una copia del DataFrame original
     df = st.session_state["cobranzas"].copy()
@@ -277,7 +278,7 @@ def display_table():
 
                 with col1:
                     st.write(f"**Vencimiento**:")
-                    st.write(f"{row['vencimiento']}")
+                    st.write(f"{dtt.strptime(row['vencimiento'], '%d-%m-%Y').strftime('%d-%m-%Y')}")
                 
                 with col2:
                     st.write(f"**Vendedor**: {row['vendedor']}")
@@ -294,6 +295,9 @@ def display_table():
                     st.write(f"**IVA**: ${float(row['iva']):,.2f}")
 
                 with col5:
+                    if row['estado']!='Pendiente de pago':
+                        st.write(f"**Dias de mora**: {row['dias_mora']}")
+                        st.write(f"**Monto a pagar**: ${row['mora']:,.2f}")
                     st.write(f"**Monto a pagar**: ${row['monto_recalculado_mora']:,.2f}")
 
                 with col6:
