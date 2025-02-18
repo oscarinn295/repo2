@@ -290,7 +290,7 @@ def display_table():
                     st.write(f"**Monto**: ${float(row['monto']):,.2f}")
 
                 with col4:
-                    #st.write(f"**Amortización**: ${float(row['amortizacion']):,.2f}")
+                    st.write(f"**Amortización**: ${float(row['amortizacion']):,.2f}")
                     st.write(f"**Intereses**: ${float(row['intereses']):,.2f}")
                     st.write(f"**IVA**: ${float(row['iva']):,.2f}")
 
