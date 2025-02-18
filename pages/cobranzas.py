@@ -163,8 +163,8 @@ def registrar(cobranza):
 
     with st.form(f"registrar_pago{cobranza['id']}"):
         cobrador = st.selectbox('Cobrador', vendedores, key=f"cobradores_{cobranza['id']}")
+        obs=st.text_input('Observación',key=f'observacion_{cobranza['id']}')
         submit_button = st.form_submit_button("Registrar")
-
     if submit_button:
         if medio_pago == 'Seleccione una opción' or monto <= 0:
             st.warning('Faltan datos')
@@ -181,7 +181,8 @@ def registrar(cobranza):
             ('medio de pago',medio_pago),
             ('comprobante', comprobante),
             ('fecha_cobro', date.today().strftime('%d-%m-%Y')),
-            ('monto', max(0, float(cobranza['monto']) - monto))
+            ('monto', max(0, float(cobranza['monto']) - monto)),
+            ('obs',obs)
         ]
 
         for col, dato in actualizacion:
@@ -194,12 +195,15 @@ def registrar(cobranza):
 
 
 def no_abono(cobranza):
-
     import numpy as np
-    cobranza['vencimiento'] = str(cobranza['vencimiento'])
-    cobranza = cobranza.replace({np.nan: ""}) 
-    save(cobranza['id'],'estado','En mora')
-    st.rerun()
+    with st.form(f'no abono{cobranza['id']}'):
+        st.text_input('obs',key=f"no abono_{cobranza['id']}")
+        submit_button=st.form_submit_button('registrar')
+    if submit_button:
+        cobranza['vencimiento'] = str(cobranza['vencimiento'])
+        cobranza = cobranza.replace({np.nan: ""}) 
+        save(cobranza['id'],'estado','En mora')
+        st.session_state['cobranzas']=load()
 
 if 'pagina_actual' not in st.session_state:
     st.session_state['pagina_actual'] = 1
@@ -288,8 +292,11 @@ def display_table():
                     st.write(f"{row['estado']}")
 
                 with col8:
-                    with st.popover('Actualizar'):
-                        registrar(row)
+                    with st.expander('Actualizar: '):
+                        with st.popover('Registrar pago'):
+                            registrar(row)
+                        with st.popover('No abonó'):
+                            no_abono(row)
     else:
         st.warning("No se encontraron resultados.")
 

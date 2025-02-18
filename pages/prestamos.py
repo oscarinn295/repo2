@@ -119,24 +119,25 @@ def crear_cobranzas(data):
     vendedor=data[3]
     cantidad_cuotas=data[4]
     entregado=data[5]
-    capital=entregado
     frecuencia=data[6]
     TNM=data[9]
     monto_por_cuota=float(data[10])
     
     fechas=generar_fechas_prestamos(fecha_entrega,frecuencia, cantidad_cuotas)
 
-    
-
     tasa_decimal = TNM / 100
+    capital=entregado
 
     cuota_pura=capital*((((1+tasa_decimal)**cantidad_cuotas)*tasa_decimal)/(((1+tasa_decimal)**cantidad_cuotas)-1))
-
-    iva=cuota_pura*0.21
 
     interes=capital*tasa_decimal
 
     amortizacion=cuota_pura-interes
+
+    iva=cuota_pura*0.21
+
+    
+
 
     montos=[[interes,amortizacion]]
     
@@ -173,7 +174,7 @@ def crear_cobranzas(data):
             ]
         capital-=amortizacion
         interes=capital*tasa_decimal
-        cuota_pura-=interes
+        amortizacion=cuota_pura-interes
         i+=1
         montos.append([interes,amortizacion])
         login.append_data(nueva_cobranza,st.secrets['ids']['cobranzas'])
