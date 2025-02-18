@@ -104,8 +104,11 @@ else:
 
         for _, row in prestamos_cliente.iterrows():
             st.markdown(f"### Préstamo ID: {row['id']}")
-            if len(row['asociado'])>1:
-                st.write(f"📝 **Producto asociado:** {row['asociado']}")
+            asociado=str(row['asociado'])
+            if len(asociado)>1:
+                st.write(f"📝 **Concepto:** {row['asociado']}")
+            else:
+                st.write(f"📝 **Concepto:** Efectivo")
             st.write(f"📅 **Fecha:** {row['fecha']}")
             st.write(f"💰 **Capital:** {row['capital']}")
             st.write(f"📌 **Cantidad de cuotas:** {row['cantidad']}")
