@@ -25,5 +25,5 @@ def display_table(search_query=""):
         st.warning("No se encontraron resultados.")
 
 
-st.title("Morosos, datos de ejemplo")
+st.title("Morosos")
 display_table()

@@ -147,7 +147,6 @@ def generarMenu(usuario,permiso):
                 st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
             else:
                 st.page_link('pages/repo_comision.py', label="Reporte Comisiones", icon=":material/group:")
-                st.page_link('pages/repo_mensual.py', label="Reporte Mensual", icon=":material/group:")
                 st.page_link('pages/repo_morosos.py', label="Reporte Morosos", icon=":material/group:")
                 st.page_link('pages/reporte_general.py', label="Reporte General", icon=":material/group:")
             st.subheader("Otros")

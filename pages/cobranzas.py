@@ -193,6 +193,20 @@ def registrar(cobranza):
         #login.historial()
         st.rerun()
 
+def registrar_moroso(cobranza):
+    morosos=login.load_data(st.secrets['urls']['repo_morosos'])
+    int(st.session_state['cobranzas']['id'].max())
+    moroso=[
+            int(morosos['id'].max()),
+            cobranza['nombre'],
+            st.session_state['clientes'][st.session_state['clientes']['nombre']==cobranza['nombre']]['dni'],
+            cobranza['n_cuota'],
+            cobranza['monto'],
+            cobranza['monto_recalculado_mora'],
+            cobranza['dias_mora'],
+            cobranza['mora']
+        ]
+    login.append_data(moroso,st.secrets['ids']['repo_morosos'])
 
 def no_abono(cobranza):
     import numpy as np

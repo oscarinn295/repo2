@@ -126,10 +126,28 @@ with st.container(border=True):
     st.subheader('Plata en la calle')
     st.write('en desarrollo')
 
-with st.expander('ver movimientos de caja'):
-    st.subheader('movimientos de caja')
+with st.expander('Ver movimientos de caja'):
+    st.subheader('Movimientos de caja')
     st.dataframe(st.session_state["mov"])
 
-with st.expander('reporte de ventas'):
-    st.subheader('reporte de ventas')
+with st.expander('Ver reporte de ventas'):
+    st.subheader('Reporte de ventas')
     st.dataframe(st.session_state['repo_ventas'])
+
+
+idc=st.secrets['ids']['repo_mensual']
+url=st.secrets['urls']['repo_mensual']
+def load():
+    return login.load_data(url)
+
+def new(data):#añade una columna entera de datos
+    login.append_data(data,st.secrets['ids']['clientes'])
+
+if 'repo_mensual' not in st.session_state:
+    st.session_state['repo_mensual']=load()
+repo_mensual=st.session_state['repo_mensual']
+with st.expander('Ver reporte Mensual'):
+    st.subheader("Reporte Mensual")
+    st.dataframe(repo_mensual)
+
+

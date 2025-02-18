@@ -49,10 +49,15 @@ else:
         #capital entregado
         entregado=prestamos_cliente['capital'].sum()
         st.write(f"capital entregado: {entregado}")
+
+        #total pagado
+        pagado=cobranzas_cliente[cobranzas_cliente['estado']=='pagado']['pago'].sum()
+        st.write(f"total pagado: {pagado}")
+
         #total de intereses
-        mora=cobranzas_cliente['mora'].sum()
-        st.write(f"total de intereses: {mora}")
-        
+        mora=cobranzas_cliente[cobranzas_cliente['estado']=='en mora']['mora'].sum()
+        st.write(f"total de intereses acumulados: {mora}")
+
     with col3:
         #total de deuda
         monto_mora=cobranzas_cliente['monto_recalculado_mora'].sum()-cobranzas_cliente['pago'].sum()
