@@ -175,7 +175,8 @@ def crear():
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
     df=st.session_state['clientes']
-    df=df[df['vendedor']==st.session_state['usuario']]
+    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
+        df=df[df['vendedor']==st.session_state['usuario']]
     if search_query:
         df =df[df['nombre'].str.contains(search_query, case=False, na=False)]
     # Configuración de paginación
