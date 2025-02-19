@@ -1,6 +1,7 @@
 import streamlit as st
 import login
-
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
 login.generarLogin()
 
 import math

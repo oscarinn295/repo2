@@ -2,6 +2,8 @@ import login
 import streamlit as st
 import pandas as pd
 
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
 # Llamar al módulo de login
 login.generarLogin()
 idc=st.secrets['ids']['repo_comision']

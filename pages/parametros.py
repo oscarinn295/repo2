@@ -12,7 +12,10 @@ def save(id,column,data):#modifica un solo dato
 
 
 
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
 
+    
 login.generarLogin()
 
 

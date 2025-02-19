@@ -8,16 +8,17 @@ import datetime as dt
 import meta_ediciones
 import numpy as np
 
-
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
+    
 if 'prestamos' not in st.session_state:
-    st.session_state["prestamos"] = login.load_data(st.secrets['urls']['prestamos'])
+    st.session_state["prestamos"] = login.load_data_vendedores(st.secrets['urls']['prestamos'])
 if 'cobranzas' not in st.session_state:
-    st.session_state['cobranzas'] = login.load_data(st.secrets['urls']['cobranzas'])
+    st.session_state['cobranzas'] = login.load_data_vendedores(st.secrets['urls']['cobranzas'])
+
 prestamos=st.session_state["prestamos"]
-if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-    st.session_state["prestamos"]=st.session_state["prestamos"][st.session_state["prestamos"]['vendedor']==st.session_state['usuario']]
-    st.session_state['cobranzas']=st.session_state['cobranzas'][st.session_state['cobranzas']['vendedor']==st.session_state['usuario']]
-    prestamos=prestamos[prestamos['vendedor']==st.session_state['usuario']]
+
+
 login.generarLogin()
 
 
@@ -26,10 +27,7 @@ idc = st.secrets['ids']['cobranzas']
 url = st.secrets['urls']['cobranzas']
 
 def load():
-    df=login.load_data(url)
-    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-        df=df[df['vendedor']==st.session_state['usuario']]
-    return df
+    return login.load_data_vendedores(url)
 
 def save(id,column,data):#modifica un solo dato
     login.save_data(id,column,data,idc)
@@ -42,8 +40,6 @@ def upload_to_drive(image_path, folder_id):
 
 def convert_drive_url(url):
     pass
-
-
 
 
 
@@ -247,20 +243,21 @@ def display_table():
             estado = st.selectbox("Estado", ["Todos"] + estados, key='filtro3')
 
     if not reset:
+
         if aplicar_fecha and desde and hasta:
             df = df[(df['vencimiento_dt'] >= pd.Timestamp(desde)) & 
                     (df['vencimiento_dt'] <= pd.Timestamp(hasta))]
+            
         if cliente != "Todos":
             df = df[df['nombre'] == cliente]
+
         if estado != "Todos":
             df = df[df['estado'] == estado]
-        if st.session_state['user_data']['permisos'].iloc[0] == 'admin':
-            if vendedor != "Todos":
-                df = df[df['vendedor'] == vendedor]
-        else:
-            df = df[df['vendedor'] == st.session_state['usuario']]
+
+        if vendedor != "Todos":
+            df = df[df['vendedor'] == vendedor]
     else:
-        df = st.session_state["cobranzas"].copy()
+        df = st.session_state["cobranzas"]
 
     ITEMS_POR_PAGINA = 10
     total_paginas = (len(df) // ITEMS_POR_PAGINA) + (1 if len(df) % ITEMS_POR_PAGINA > 0 else 0)
@@ -333,10 +330,12 @@ def display_table():
     st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
 
     items_seleccionados = st.selectbox("Por página", [10, 25, 50, 100], index=[10, 25, 50, 100].index(ITEMS_POR_PAGINA),key='paginado')
+
     if items_seleccionados != ITEMS_POR_PAGINA:
         ITEMS_POR_PAGINA = items_seleccionados
         st.session_state['pagina_actual'] = 1
         st.rerun()
+
     if not reset:
         with st.expander('datos filtrados'):
             st.subheader("Pendientes de pago")
@@ -347,8 +346,10 @@ def display_table():
 
             st.subheader("Pagados")
             st.dataframe(df[df['estado'] == 'Pago total'])
+
             st.subheader("Pagos parciales")
             st.dataframe(df[df['estado'] == 'Pago parcial'])
+
             st.subheader('Pendientes de actualizacion: ')
             # Convertir la columna 'vencimiento' a tipo datetime
             df['vencimiento'] = pd.to_datetime(df['vencimiento'], format='%d-%m-%Y')

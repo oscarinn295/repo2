@@ -12,10 +12,8 @@ idc=st.secrets['ids']['prestamos']
 url=st.secrets['urls']['prestamos']
 
 def load():
-    df=login.load_data(url)
-    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-        df=df[df['vendedor']]==st.session_state['usuario']
-    return df
+    return login.load_data_vendedores(url)
+
 def delete(index):#borra una fila completa y acomoda el resto de la hoja para que no quede el espacio en blanco
     login.delete_data(index,idc)
 def save(id,column,data):#modifica un solo dato
@@ -24,6 +22,8 @@ def new(data):#añade una columna entera de datos
     login.append_data(data,idc)
 
 
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
 login.generarLogin()
 
 
@@ -38,14 +38,10 @@ if "mov" not in st.session_state:
     st.session_state["mov"] = login.load_data(st.secrets['urls']['flujo_caja'])
 
 if "cobranzas" not in st.session_state:
-    st.session_state["cobranzas"] = login.load_data(st.secrets['urls']['cobranzas'])
+    st.session_state["cobranzas"] = login.load_data_vendedores(st.secrets['urls']['cobranzas'])
 
 if "clientes" not in st.session_state:
-    st.session_state["clientes"] = login.load_data(st.secrets['urls']['clientes'])
-
-if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-    st.session_state["cobranzas"]=st.session_state["cobranzas"][st.session_state["cobranzas"]['vendedor']==st.session_state['usuario']]
-    st.session_state["clientes"]=st.session_state["clientes"][st.session_state["clientes"]['vendedor']==st.session_state['usuario']]
+    st.session_state["clientes"] = login.load_data_vendedores(st.secrets['urls']['clientes'])
 
 
 cobranzas=st.session_state["cobranzas"]
@@ -178,7 +174,7 @@ def crear_cobranzas(data):
         i+=1
         montos.append([interes,amortizacion])
         login.append_data(nueva_cobranza,st.secrets['ids']['cobranzas'])
-        st.session_state['cobranzas']=login.load_data(st.secrets['urls']['cobranzas'])
+        st.session_state['cobranzas']=login.load_data_vendedores(st.secrets['urls']['cobranzas'])
 
 def egreso_caja(data):
     fecha_entrega=data[1]
@@ -410,24 +406,23 @@ def editar(prestamo):    # Si estamos editando un préstamo, cargar datos existe
 #mostrar los prestamos vigentes con los botones interactivos
 import numpy as np
 def display_table():
+
     df = st.session_state["prestamos"]
-    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-            df=df[df['vendedor']==st.session_state['usuario']]
-    else:
-        lista=['seleccione un cliente']
-        lista2=['seleccione un vendedor']
-        for nombre in vendedores:
-            lista2.append(nombre)
-        for nombre in clientes['nombre']:
-            lista.append(nombre)
-        nombre_cliente = st.selectbox('Cliente',lista,index=0)
-        vendedor=st.selectbox('vendedor',lista2,index=0)
-        if nombre_cliente!='seleccione un cliente':
-            st.session_state["prestamos_df"]=df[df['nombre']==nombre_cliente]
-            df=st.session_state["prestamos_df"]
-        if vendedor!='seleccione un vendedor':
-            st.session_state["prestamos_df"]=df[df['vendedor']==vendedor]
-            df=st.session_state["prestamos_df"]
+    lista=['seleccione un cliente']
+    lista2=['seleccione un vendedor']
+    for nombre in vendedores:
+        lista2.append(nombre)
+    for nombre in clientes['nombre']:
+        lista.append(nombre)
+    nombre_cliente = st.selectbox('Cliente',lista,index=0)
+    vendedor=st.selectbox('vendedor',lista2,index=0)
+    if nombre_cliente!='seleccione un cliente':
+        st.session_state["prestamos_df"]=df[df['nombre']==nombre_cliente]
+        df=st.session_state["prestamos_df"]
+    if vendedor!='seleccione un vendedor':
+        st.session_state["prestamos_df"]=df[df['vendedor']==vendedor]
+        df=st.session_state["prestamos_df"]
+
 
     # Configuración de paginación
     ITEMS_POR_PAGINA = 10
@@ -518,7 +513,6 @@ with col2:
         with st.popover("Crear Préstamo",use_container_width=False,icon=f'💲'):
             crear()
 with st.container(border=True):
-
     display_table()
 with st.expander('Ver todos los datos'):
     st.dataframe(load())

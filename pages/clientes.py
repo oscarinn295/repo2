@@ -2,14 +2,14 @@ import pandas as pd
 import login
 import streamlit as st
 
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
+
 
 idc=st.secrets['ids']['clientes']
 url = st.secrets['urls']['clientes']
 def load():
-    df=login.load_data(url)
-    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-        df=df[df['vendedor']==st.session_state['usuario']]
-    return df
+    return login.load_data_vendedores(url)
 
 def save(id,column,data):#modifica un solo dato
     login.save_data(id,column,data,idc)
@@ -19,14 +19,9 @@ def new(data):#añade una columna entera de datos
 login.generarLogin()
 st.session_state['clientes']=load() 
 
-cobranzas=login.load_data(st.secrets['urls']['cobranzas'])
-prestamos=login.load_data(st.secrets['urls']['prestamos'])
+cobranzas=login.load_data_vendedores(st.secrets['urls']['cobranzas'])
+prestamos=login.load_data_vendedores(st.secrets['urls']['prestamos'])
 st.session_state['clientes']=load()
-if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-    cobranzas=cobranzas[cobranzas['vendedor']==st.session_state['usuario']]
-    prestamos=prestamos[prestamos['vendedor']==st.session_state['usuario']]
-
-
 
 
 import numpy as np
@@ -175,8 +170,7 @@ def crear():
 def display_table(search_query=""):
     st.subheader("Lista de Clientes")
     df=st.session_state['clientes']
-    if st.session_state['user_data']['permisos'].iloc[0]!='admin':
-        df=df[df['vendedor']==st.session_state['usuario']]
+    
     if search_query:
         df =df[df['nombre'].str.contains(search_query, case=False, na=False)]
     # Configuración de paginación
@@ -188,35 +182,36 @@ def display_table(search_query=""):
     df_paginado = df.iloc[inicio:fin]
     # Crear tabla con botones
     if not df.empty:
-        for idx, row in df_paginado.iterrows():
-            with st.container(border=True):
-                if st.session_state['user_data']['permisos'].iloc[0]=='admin':
-                    col1, col2, col3 = st.columns(3)  # Distribuir columnas
-                    with col1:
-                        st.write(f"**Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
-                        st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
-                    with col2:
-                        with st.popover(f'✏️ Editar'):
-                                    editar(row)
-                    with col3:
-                        if st.button("🗑️Eliminar", key=f"delete_{row['id']}"):
-                            delete(row['id'])
-                            st.rerun()
-                        if st.button("ver detalles",key=f'cliente_{idx}'):
-                            st.session_state['cliente']=row
-                            st.switch_page("pages/por_cliente.py")
-                else:
-                    col1, col2, col3,col4 = st.columns(4)  # Distribuir columnas
-                    with col1:
-                        st.write(f"**Nombre**: {row['nombre']}")
-                    with col2:
-                        st.write(f"**Dirección**: {row['direccion']}- **DNI**: {row['dni']}")
-                    with col3:
-                        st.write(f"**Celular**: {row['celular']}  **Mail**: {row['mail']}")
-                    with col4:
-                        if st.button("ver detalles",key=f'cliente_{idx}'):
-                            st.session_state['cliente']=row
-                            st.switch_page("pages/por_cliente.py")
+        if st.session_state['user_data']['permisos'].iloc[0]=='admin':
+                for idx, row in df_paginado.iterrows():
+                    with st.container(border=True):
+                            col1, col2, col3 = st.columns(3)  # Distribuir columnas
+                            with col1:
+                                st.write(f"**Nombre**: {row['nombre']} - **Vendedor**: {row['vendedor']}")
+                                st.write(f"**Dirección**: {row['direccion']} - **DNI**: {row['dni']} - **Celular**: {row['celular']}")
+                            with col2:
+                                with st.popover(f'✏️ Editar'):
+                                            editar(row)
+                            with col3:
+                                if st.button("🗑️Eliminar", key=f"delete_{row['id']}"):
+                                    delete(row['id'])
+                                    st.rerun()
+                                if st.button("ver detalles",key=f'cliente_{idx}'):
+                                    st.session_state['cliente']=row
+                                    st.switch_page("pages/por_cliente.py")
+        else:
+            for idx, row in df_paginado.iterrows():
+                col1, col2, col3,col4 = st.columns(4)  # Distribuir columnas
+                with col1:
+                    st.write(f"**Nombre**: {row['nombre']}")
+                with col2:
+                    st.write(f"**Dirección**: {row['direccion']}- **DNI**: {row['dni']}")
+                with col3:
+                    st.write(f"**Celular**: {row['celular']}  **Mail**: {row['mail']}")
+                with col4:
+                    if st.button("ver detalles",key=f'cliente_{idx}'):
+                        st.session_state['cliente']=row
+                        st.switch_page("pages/por_cliente.py")
 
     else:
         st.warning("No se encontraron resultados.")

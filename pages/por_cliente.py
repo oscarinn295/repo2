@@ -1,6 +1,10 @@
 import streamlit as st
 import login
 import pandas as pd
+
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
+    
 if st.button("Volver"):
     st.session_state['cliente'] = None
     st.switch_page("pages/clientes.py")
@@ -50,9 +54,6 @@ else:
         entregado=prestamos_cliente['capital'].sum()
         st.write(f"capital entregado: {entregado}")
 
-        #total pagado
-        pagado=cobranzas_cliente[cobranzas_cliente['estado']=='pagado']['pago'].sum()
-        st.write(f"total pagado: {pagado}")
 
         #total de intereses
         mora=cobranzas_cliente[cobranzas_cliente['estado']=='en mora']['mora'].sum()

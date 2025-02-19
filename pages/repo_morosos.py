@@ -2,7 +2,8 @@ import login
 import pandas as pd
 import streamlit as st
 
-
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
 # Llamar al módulo de login
 login.generarLogin()
 

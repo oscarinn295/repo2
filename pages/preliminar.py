@@ -6,6 +6,9 @@ from datetime import date
 import datetime as dt
 from dateutil.relativedelta import relativedelta
 
+
+if 'usuario' not in st.session_state:
+    st.switch_page('inicio.py')
 # Llamar al módulo de login
 login.generarLogin()
 
