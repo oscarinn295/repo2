@@ -49,7 +49,7 @@ col1,col2,col3,col4,col5,col6=st.columns(6)
 with col6:
     if st.button('reordenar datos'):
         # Aplicar ordenamiento
-        df_cobranzas = meta_ediciones.ordenar_cobranzas(cobranzas)
+        df_cobranzas = meta_ediciones.ordenar_cobranzas(login.load_data(st.secrets['urls']['cobranzas']))
 
         # Limpiar NaN y asegurar que los datos sean cadenas (Google Sheets espera texto en JSON)
         df_cobranzas = df_cobranzas.fillna("").astype(str)
@@ -68,7 +68,8 @@ with col6:
         
     if st.button('calcular regargos por mora'):
         # Aplicar la función correctamente y asignar los valores de vuelta
-        cobranzas[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobranzas.apply(meta_ediciones.calcular_recargo, axis=1)
+        cobb=login.load_data(st.secrets['urls']['cobranzas'])
+        cobb[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobb.apply(meta_ediciones.calcular_recargo, axis=1)
 
         # Asegurar que las columnas estén en el orden correcto
         column_order = ['id','prestamo_id','entregado','tnm','cantidad de cuotas',
@@ -76,18 +77,18 @@ with col6:
                         "dias_mora", "mora",'capital','cuota pura','intereses',
                         'amortizacion','iva','monto_recalculado_mora','pago',
                         'redondeo','estado','medio de pago','cobrador','fecha_cobro' ]
-        cobranzas = cobranzas[column_order]
+        cobb = cobb[column_order]
 
         # Reemplazar NaN y NaT en todas las columnas
-        cobranzas = cobranzas.replace({np.nan: "", pd.NaT: ""})
-        cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>dt.date.today(),'estado']='Pendiente de pago'
-        cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
+        cobb = cobb.replace({np.nan: "", pd.NaT: ""})
+        cobb.loc[pd.to_datetime(cobb['vencimiento']).dt.date>dt.date.today(),'estado']='Pendiente de pago'
+        cobb['vencimiento'] = pd.to_datetime(cobb['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
         # Solución específica para la columna 'fecha_cobro'
-        cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha_cobro'], errors='coerce')
-        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].dt.strftime('%d-%m-%Y').fillna("")
-        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].replace("NaT", "")
+        cobb['fecha_cobro'] = pd.to_datetime(cobb['fecha_cobro'], errors='coerce')
+        cobb['fecha_cobro'] = cobb['fecha_cobro'].dt.strftime('%d-%m-%Y').fillna("")
+        cobb['fecha_cobro'] = cobb['fecha_cobro'].replace("NaT", "")
         # Convertir a lista de listas para subir a Google Sheets
-        data_to_upload = [cobranzas.columns.tolist()] + cobranzas.astype(str).values.tolist()
+        data_to_upload = [cobb.columns.tolist()] + cobb.astype(str).values.tolist()
         # Sobrescribir en Google Sheets
         sheet_id = st.secrets['ids']['cobranzas']
         login.overwrite_sheet(data_to_upload, sheet_id)
