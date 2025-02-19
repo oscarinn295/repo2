@@ -4,8 +4,9 @@ import requests
 import re
 import streamlit as st
 import login
-from datetime import date
+import datetime as dt
 import meta_ediciones
+import numpy as np
 
 
 if 'prestamos' not in st.session_state:
@@ -45,15 +46,10 @@ def convert_drive_url(url):
 
 
 
-from datetime import datetime
-import datetime as dt
-
-import pandas as pd
-from datetime import date
-import numpy as np
 
 cobranzas = load()
 col1,col2,col3,col4,col5,col6=st.columns(6)
+
 with col6:
     if st.button('reordenar datos'):
         # Aplicar ordenamiento
@@ -88,12 +84,12 @@ with col6:
 
         # Reemplazar NaN y NaT en todas las columnas
         cobranzas = cobranzas.replace({np.nan: "", pd.NaT: ""})
-        cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>date.today(),'estado']='Pendiente de pago'
+        cobranzas.loc[pd.to_datetime(cobranzas['vencimiento']).dt.date>dt.date.today(),'estado']='Pendiente de pago'
         cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
         # Solución específica para la columna 'fecha_cobro'
-        cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha_cobro'], errors='coerce').dt.strftime('%d-%m-%Y')
+        cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha_cobro'], errors='coerce')
+        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].dt.strftime('%d-%m-%Y').fillna("")
         cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].replace("NaT", "")
-        cobranzas['fecha_cobro'] = cobranzas['fecha_cobro'].fillna("").astype(str)
         # Convertir a lista de listas para subir a Google Sheets
         data_to_upload = [cobranzas.columns.tolist()] + cobranzas.astype(str).values.tolist()
         # Sobrescribir en Google Sheets
@@ -104,17 +100,17 @@ def ingreso(cobranza,descripcion):
     st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
     caja=st.session_state["mov"]
     caja['saldo'] = pd.to_numeric(caja['saldo'], errors='coerce')
-    mov=[date.today().strftime("%d-%m-%Y"),
-        f"COBRANZA CUOTA NRO: {cobranza["n_cuota"]}, {descripcion}",
+    saldo_total = caja['saldo'].sum() if not caja['saldo'].isnull().all() else 0
+    mov = [
+        dt.date.today().strftime("%d-%m-%Y"),
+        f"COBRANZA CUOTA NRO: {cobranza['n_cuota']}, {descripcion}",
         cobranza['pago'],
         0,
         cobranza['pago'],
-        caja['saldo'].sum()+cobranza['pago']
-        ]
+        saldo_total + cobranza['pago']
+    ]
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 vendedores = st.session_state['usuarios']['usuario'].tolist()
-import numpy as np
-from datetime import date
 
 def registrar(cobranza):
 
@@ -124,8 +120,9 @@ def registrar(cobranza):
         index=0,key=f"vencimientoo{cobranza['id']}"
     )
     if 'hoy' in fecha_cobro:
-        fecha_cobro=date.today().strftime("%d-%m-%Y")
-    elif 'otra fecha':
+        fecha_cobro=dt.date.today().strftime("%d-%m-%Y")
+
+    elif fecha_cobro == 'otra fecha':
         fecha_cobro=st.date_input('fecha del cobro',key=f"cobro{cobranza['id']}")
         fecha_cobro=fecha_cobro.strftime("%d-%m-%Y")
     pago = st.selectbox(
@@ -227,7 +224,6 @@ st.session_state['cobranzas']['id'] = pd.to_numeric(st.session_state['cobranzas'
 
 clientes=st.session_state['clientes']['nombre'].values.tolist()
 estados=['Pendiente de pago','En mora','Pago total','Pago parcial']
-from datetime import datetime as dtt
 def display_table():
     # Crear una copia del DataFrame original
     df = st.session_state["cobranzas"]
@@ -241,8 +237,8 @@ def display_table():
 
             aplicar_fecha = st.checkbox("Filtrar por fecha", value=False)
             if aplicar_fecha:
-                desde = st.date_input("Desde", value=date.today())
-                hasta = st.date_input("Hasta", value=date.today())
+                desde = st.date_input("Desde", value=dt.date.today())
+                hasta = st.date_input("Hasta", value=dt.date.today())
             else:
                 desde, hasta = None, None
             
