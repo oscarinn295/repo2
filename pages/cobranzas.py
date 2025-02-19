@@ -108,83 +108,101 @@ def ingreso(cobranza,descripcion):
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 vendedores = st.session_state['usuarios']['usuario'].tolist()
 
+import datetime as dt
+import numpy as np
+
 def registrar(cobranza):
-
-    fecha_cobro=st.selectbox(
-        'fecha de cobro',
-        ['seleccionar fecha','hoy','otra fecha'],
-        index=0,key=f"vencimientoo{cobranza['id']}"
+    fecha_cobro = st.selectbox(
+        'Fecha de cobro',
+        ['Seleccionar fecha', 'Hoy', 'Otra fecha'],
+        index=0,
+        key=f"vencimientoo{cobranza['id']}"
     )
-    if 'hoy' in fecha_cobro:
-        fecha_cobro=dt.date.today().strftime("%d-%m-%Y")
 
-    elif fecha_cobro == 'otra fecha':
-        fecha_cobro=st.date_input('fecha del cobro',key=f"cobro{cobranza['id']}")
-        fecha_cobro=fecha_cobro.strftime("%d-%m-%Y")
+    if fecha_cobro == 'Hoy':
+        fecha_cobro = dt.date.today().strftime("%d-%m-%Y")
+    elif fecha_cobro == 'Otra fecha':
+        fecha_cobro = st.date_input('Fecha del cobro', key=f"cobro{cobranza['id']}")
+        fecha_cobro = fecha_cobro.strftime("%d-%m-%Y")
+
+    cobranza['monto_recalculado_mora'] = float(cobranza.get('monto_recalculado_mora', 0) or 0)
+
     pago = st.selectbox(
         'Monto',
-        ['pago', f"Pago total: {cobranza['monto_recalculado_mora']}", 'otro monto'],
+        ['Pago', f"Pago total: {cobranza['monto_recalculado_mora']}", 'Otro monto'],
         index=0,
         key=f"pago{cobranza['id']}"
     )
 
     if 'Pago total' in pago:
         monto = cobranza['monto_recalculado_mora']
-        registro = 'Pago total'
-        st.write(f'monto a pagar: {monto}')
-    elif 'otro monto' in pago:
+    elif 'Otro monto' in pago:
         monto = st.number_input(
             "Monto",
             min_value=0.0,
-            max_value=float(cobranza['monto_recalculado_mora']),
+            max_value=cobranza['monto_recalculado_mora'],
             value=0.0,
             step=1000.0,
             key=f"monto_{cobranza['id']}"
         )
-        registro = 'Pago parcial' if monto < cobranza['monto_recalculado_mora'] else 'Pago total'
+    else:
+        monto = 0.0  # En caso de que no elijan nada
+
+    # Determinar el estado del pago
+    monto = float(monto)  # Asegurar conversión correcta
+    nuevo_monto = max(0, float(cobranza.get('monto', 0)) - monto)
+
+    if nuevo_monto == 0:
+        registro = 'Pago total'
+    elif monto > 0:
+        registro = 'Pago parcial'
+    else:
+        registro = 'Sin pago'
 
     medio_pago = st.selectbox(
         'Medio de pago', 
-        ['Seleccione una opción', 'efectivo', 'transferencia','mixto'], 
+        ['Seleccione una opción', 'Efectivo', 'Transferencia', 'Mixto'], 
         key=f"medio_{cobranza['id']}"
     )
 
-    if medio_pago == 'transferencia':
+    comprobante = ""
+    if medio_pago == 'Transferencia':
         comprobante = st.text_input('Número de comprobante', key=f"comprobante_{cobranza['id']}")
-    else:
-        comprobante = ""
+
 
     with st.form(f"registrar_pago{cobranza['id']}"):
         cobrador = st.selectbox('Cobrador', vendedores, key=f"cobradores_{cobranza['id']}")
-        obs=st.text_input('Observación',key=f'observacion_{cobranza['id']}')
+        obs = st.text_input('Observación', key=f'observacion_{cobranza["id"]}')
         submit_button = st.form_submit_button("Registrar")
+
     if submit_button:
-        if medio_pago == 'Seleccione una opción' or monto <= 0:
-            st.warning('Faltan datos')
+        if medio_pago == 'Seleccione una opción' or monto <= 0 or fecha_cobro=='Seleccionar fecha':
+            st.warning('Faltan datos o el monto no es válido.')
             return
+        else:
+            cobranza['vencimiento'] = str(cobranza['vencimiento'])
+            cobranza = cobranza.replace({np.nan: 0})
 
-        cobranza['vencimiento'] = str(cobranza['vencimiento'])
-        cobranza = cobranza.replace({np.nan: 0})
-        monto=float(monto)
-        actualizacion = [
-            ('cobrador', cobrador),
-            ('pago', float(cobranza.get('pago', 0)) + monto),
-            ('redondeo', 0.0),
-            ('estado', registro),
-            ('medio de pago',medio_pago),
-            ('comprobante', comprobante),
-            ('fecha_cobro', fecha_cobro),
-            ('monto', max(0, float(cobranza['monto']) - monto)),
-            ('obs',obs)
-        ]
+            actualizacion = [
+                ('cobrador', cobrador),
+                ('pago', float(cobranza.get('pago', 0)) + monto),
+                ('redondeo', 0.0),
+                ('estado', registro),
+                ('medio de pago', medio_pago),
+                ('comprobante', comprobante),
+                ('fecha_cobro', fecha_cobro),
+                ('monto', nuevo_monto),
+                ('obs', obs)
+            ]
 
-        for col, dato in actualizacion:
-            save(cobranza['id'], col, dato)
+            for col, dato in actualizacion:
+                if pd.notna(dato):  # Evitar guardar NaN
+                    save(cobranza['id'], col, dato)
 
-        ingreso(cobranza, registro)
-        st.session_state['cobranzas'] = load()
-        #login.historial()
-        st.rerun()
+            ingreso(cobranza, registro)  # Asegúrate de que esta función está definida
+            st.session_state['cobranzas'] = load()
+            st.rerun()
+
 
 def registrar_moroso(cobranza):
     morosos=login.load_data(st.secrets['urls']['repo_morosos'])

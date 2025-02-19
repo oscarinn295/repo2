@@ -62,7 +62,7 @@ def save_data(id_value, column_name, new_value, sheet_id):
     worksheet = get_worksheet(sheet_id)
     col_labels = worksheet.row_values(1)
     if column_name not in col_labels:
-        st.error("Columna no encontrada")
+        st.error("...")
         return
     col_index = col_labels.index(column_name) + 1
     cell = worksheet.find(str(id_value))
