@@ -323,12 +323,12 @@ def display_table():
             if st.session_state['pagina_actual'] > 1:
                 if st.button("⬅ Anterior"):
                     st.session_state['pagina_actual'] -= 1
-                    st.experimental_rerun()
+                    st.rerun()
         with col_pag3:
             if st.session_state['pagina_actual'] < total_paginas:
                 if st.button("Siguiente ➡"):
                     st.session_state['pagina_actual'] += 1
-                    st.experimental_rerun()
+                    st.rerun()
     
     st.write(f"Se muestran de {inicio + 1} a {min(fin, len(df))} de {len(df)} resultados")
 

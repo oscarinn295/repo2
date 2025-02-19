@@ -57,6 +57,6 @@ if not df.empty:
                     df.at[idx, "Valor"] = nuevo_valor
                     save(df)
                     st.success(f"Parámetro actualizado: {row['Parametro']}")
-                    st.experimental_rerun()
+                    st.rerun()
 else:
     st.warning("No se encontraron resultados.")
