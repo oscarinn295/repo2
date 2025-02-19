@@ -509,10 +509,10 @@ def display_table():
         morosos=df[df['id'].isin(moras['prestamo_id'].unique())]
         st.dataframe(morosos)
 
-col1,col2,col3=st.columns(3)
+col1,col2=st.columns(2)
 with col1:
     st.title("Prestamos")
-with col3:
+with col2:
     if st.session_state['user_data']['permisos'].iloc[0]=='admin':
         # Botón para crear un nuevo préstamo
         with st.popover("Crear Préstamo",use_container_width=False,icon=f'💲'):
