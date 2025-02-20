@@ -55,7 +55,6 @@ def save2(id,col,val):
 
 
 
-
 if "mov" not in st.session_state:
     st.session_state["mov"] = login.load_data(st.secrets['urls']['flujo_caja'])
 
@@ -463,38 +462,31 @@ def display_table():
                     st.write(f"**Monto por cuota:** ${row['monto']:,.2f} \n ", unsafe_allow_html=True)
                     if not(row['redondeo'] in [np.nan,'',0]):
                         st.write(f"**Redondeo:** ${row['redondeo']:,.2f}", unsafe_allow_html=True)
-
-
-                if st.session_state['user_data']['permisos'].iloc[0]=='admin':
-                    with col2:
-                        st.write(f"**Cliente:** {row['nombre']}\n", unsafe_allow_html=True)
-                        st.write(f"**Nro de cuotas:** {int(row['cantidad'])}")
-                    with col3:
-                        st.write(f"vendedor:{row['vendedor']}\n", unsafe_allow_html=True)
-                        st.write(f"vencimiento:{row['vence']}")
-                    with col4:
-                        new_estado = st.selectbox(
-                            "Estado*", 
-                            ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
-                            "al dia", "En mora", "en juicio", "cancelado", "finalizado"],
-                            index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
-                                "al dia", "En mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
-                            key=f"estado_{idx}"
-                        )
-                        # Agregar cambios si el estado cambió
-                        if new_estado != row["estado"]:
-                            save2(row['id'],'estado',new_estado)
-                            st.session_state['prestamos']=load()
-                            st.rerun()
-                        #with st.popover(f'✏️ Editar'):
-                            #editar(row)
-                else:
-                    with col2:
-                        st.write(f"**Cliente:** {row['nombre']}\n", unsafe_allow_html=True)
-                        st.write(f"**Nro de cuotas:** {row['cantidad']}")
-                    with col3:
-                        st.write(f"vencimiento:{row['vence']}\n", unsafe_allow_html=True)
-                        st.write(f"{row['estado']}")
+                with col2:
+                    st.write(f"**Cliente:** {row['nombre']}\n", unsafe_allow_html=True)
+                    st.write(f"**Nro de cuotas:** {int(row['cantidad'])}")
+                with col3:
+                    st.write(f"vendedor:{row['vendedor']}\n", unsafe_allow_html=True)
+                    st.write(f"vencimiento:{row['vence']}")
+                with col4:
+                    new_estado = st.selectbox(
+                        "Estado*", 
+                        ["Seleccione una opción", "pendiente", "aceptado", "liquidado", 
+                        "al dia", "En mora", "en juicio", "cancelado", "finalizado"],
+                        index=["Seleccione una opción", "pendiente", "aceptado", "liquidado",
+                            "al dia", "En mora", "en juicio", "cancelado", "finalizado"].index(row["estado"]),
+                        key=f"estado_{idx}"
+                    )
+                    # Agregar cambios si el estado cambió
+                    if new_estado != row["estado"]:
+                        save2(row['id'],'estado',new_estado)
+                        st.session_state['prestamos']=load()
+                        st.rerun()
+                    if st.button("ver detalles",key=f'cliente_{idx}'):
+                                st.session_state['credito']=row
+                                st.switch_page("pages/por_credito.py")
+                    #with st.popover(f'✏️ Editar'):
+                        #editar(row)
     else:
         st.warning("No se encontraron resultados.")
     # Controles de paginación
