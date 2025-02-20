@@ -52,11 +52,11 @@ cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], format='%d-%
 hoy_date = dt.date.today()
 
 # Actualizar el estado:
-# • Si el vencimiento es posterior a hoy, dejamos el estado como "Pendiente de pago" (sin modificar otros datos).
-# • Si el vencimiento ya pasó Y el estado está como "Pendiente de pago", lo transformamos a "En mora".
-# • Para "Pago total" se conservarán los valores que ya tenías.
-cobranzas.loc[cobranzas['vencimiento'].dt.date > hoy_date, 'estado'] = 'Pendiente de pago'
-cobranzas.loc[(cobranzas['vencimiento'].dt.date <= hoy_date) & (cobranzas['estado'] == 'Pendiente de pago'), 'estado'] = 'En mora'
+# • Si el vencimiento es hoy o en el futuro, se deja como "Pendiente de pago".
+# • Si el vencimiento es anterior a hoy y el estado es "Pendiente de pago", se transforma a "En mora".
+# • Para "Pago total" se conservan los valores que ya tenías.
+cobranzas.loc[cobranzas['vencimiento'].dt.date >= hoy_date, 'estado'] = 'Pendiente de pago'
+cobranzas.loc[(cobranzas['vencimiento'].dt.date < hoy_date) & (cobranzas['estado'] == 'Pendiente de pago'), 'estado'] = 'En mora'
 
 # Convertir nuevamente 'vencimiento' a string para subirlo (si es necesario)
 cobranzas['vencimiento'] = cobranzas['vencimiento'].dt.strftime('%d-%m-%Y')
@@ -143,15 +143,15 @@ if st.button('calcular recargos por mora'):
     cobb['vencimiento'] = pd.to_datetime(cobb['vencimiento'], format='%d-%m-%Y', errors='coerce')
     
     # Actualizar el estado de las cobranzas:
-    # • Si el vencimiento es en el futuro, dejar "Pendiente de pago"
-    # • Si ya pasó y aún está en "Pendiente de pago", cambiar a "En mora"
-    cobb.loc[cobb['vencimiento'].dt.date > hoy_date, 'estado'] = 'Pendiente de pago'
-    cobb.loc[(cobb['vencimiento'].dt.date <= hoy_date) & (cobb['estado'] == 'Pendiente de pago'), 'estado'] = 'En mora'
+    # • Si el vencimiento es hoy o en el futuro, se deja "Pendiente de pago".
+    # • Si el vencimiento es anterior a hoy y aún está en "Pendiente de pago", se cambia a "En mora".
+    cobb.loc[cobb['vencimiento'].dt.date >= hoy_date, 'estado'] = 'Pendiente de pago'
+    cobb.loc[(cobb['vencimiento'].dt.date < hoy_date) & (cobb['estado'] == 'Pendiente de pago'), 'estado'] = 'En mora'
     
     # Aplicar la función de recálculo solo a aquellas cobranzas que estén en "En mora"
     cobb[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobb.apply(calcular_recargo, axis=1)
     
-    # Ordenar las columnas según tu formato requerido
+    # Ordenar las columnas según el formato requerido
     column_order = ['id', 'prestamo_id', 'entregado', 'tnm', 'cantidad de cuotas',
                     "vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
                     "dias_mora", "mora", 'capital', 'cuota pura', 'intereses',

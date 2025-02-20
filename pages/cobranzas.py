@@ -1,13 +1,11 @@
 
 import pandas as pd
-import requests
-import re
 import streamlit as st
 import login
 import datetime as dt
 import meta_ediciones
 import numpy as np
-
+import time
 if 'usuario' not in st.session_state:
     st.switch_page('inicio.py')
     
@@ -22,6 +20,20 @@ prestamos=st.session_state["prestamos"]
 login.generarLogin()
 
 
+def save_data(id_value, column_name, new_value, sheet_id):
+    worksheet = login.get_worksheet(sheet_id)
+    col_labels = worksheet.row_values(1)
+
+    if column_name not in col_labels:
+        return
+    
+    col_index = col_labels.index(column_name) + 1
+    id_column_values = worksheet.col_values(1)  # Se asume que la columna "ID" siempre es la primera
+    
+    if str(id_value) in id_column_values:
+        row_index = id_column_values.index(str(id_value)) + 1
+        worksheet.update_cell(row_index, col_index, new_value)
+
 # Cargar datos
 idc = st.secrets['ids']['cobranzas']
 url = st.secrets['urls']['cobranzas']
@@ -30,7 +42,7 @@ def load():
     return login.load_data_vendedores(url)
 
 def save(id,column,data):#modifica un solo dato
-    login.save_data(id,column,data,idc)
+    save_data(id,column,data,idc)
 
 def delete(index):#borra una fila completa y acomoda el resto de la hoja para que no quede el espacio en blanco
     login.delete_data(index,st.secrets['ids']['cobranzas'])
@@ -119,8 +131,6 @@ def ingreso(cobranza,descripcion):
     login.append_data(mov,st.secrets['ids']['flujo_caja'])
 vendedores = st.session_state['usuarios']['usuario'].tolist()
 
-import datetime as dt
-import numpy as np
 
 def registrar(cobranza):
     fecha_cobro = st.selectbox(
@@ -130,29 +140,28 @@ def registrar(cobranza):
         key=f"vencimientoo{cobranza['id']}"
     )
 
-    if fecha_cobro == 'Hoy':
-        fecha_cobro = dt.date.today().strftime("%d-%m-%Y")
-    elif fecha_cobro == 'Otra fecha':
-        fecha_cobro = st.date_input('Fecha del cobro', key=f"cobro{cobranza['id']}")
-        fecha_cobro = fecha_cobro.strftime("%d-%m-%Y")
+    fecha_cobro = (
+        dt.date.today().strftime("%d-%m-%Y")
+        if fecha_cobro == 'Hoy'
+        else st.date_input('Fecha del cobro', key=f"cobro{cobranza['id']}").strftime("%d-%m-%Y")
+        if fecha_cobro == 'Otra fecha'
+        else None
+    )
 
-    cobranza['monto_recalculado_mora'] = float(cobranza.get('monto_recalculado_mora', 0) or 0)
+    cobranza['monto_recalculado_mora'] = float(cobranza['monto_recalculado_mora'])
+    cobranza['monto'] = float(cobranza['monto'])
 
     pago = st.selectbox(
         'Monto',
-        ['Pago', f"Pago con mora: {cobranza['monto_recalculado_mora']}",f'Pago sin mora{cobranza['monto']}', 'Otro monto'],
+        ['Pago', "Pago total", 'Otro monto'],
         index=0,
         key=f"pago{cobranza['id']}"
     )
 
-    if f"Pago con mora: {cobranza['monto_recalculado_mora']}" in pago:
-        monto = cobranza['monto_recalculado_mora']
-        registro = 'Pago total'
-    elif f'Pago sin mora{cobranza['monto']}' in pago:
-        monto=cobranza['monto']
-        registro = 'Pago sin mora'
-    elif 'Otro monto' in pago:
-        monto = st.number_input(
+    monto = (
+        cobranza['monto_recalculado_mora']
+        if pago == "Pago total"
+        else st.number_input(
             "Monto",
             min_value=0.0,
             max_value=cobranza['monto_recalculado_mora'],
@@ -160,21 +169,17 @@ def registrar(cobranza):
             step=1000.0,
             key=f"monto_{cobranza['id']}"
         )
-    else:
-        monto = 0.0  # En caso de que no elijan nada
+        if pago == 'Otro monto'
+        else 0.0
+    )
 
-    # Determinar el estado del pago
-    monto = float(monto)  # Asegurar conversión correcta
-    nuevo_monto = max(0, float(cobranza.get('monto', 0)) - monto)
+    registro = 'Pago total' if monto == cobranza['monto_recalculado_mora'] else 'Pago parcial'
 
-    if monto < cobranza['monto']:
-        registro = 'Pago parcial'
     medio_pago = st.selectbox(
         'Medio de pago', 
         ['Seleccione una opción', 'Efectivo', 'Transferencia', 'Mixto'], 
         key=f"medio_{cobranza['id']}"
     )
-
 
     with st.form(f"registrar_pago{cobranza['id']}"):
         cobrador = st.selectbox('Cobrador', vendedores, key=f"cobradores_{cobranza['id']}")
@@ -183,24 +188,22 @@ def registrar(cobranza):
 
     if submit_button:
         cobranza['vencimiento'] = str(cobranza['vencimiento'])
-        cobranza = cobranza.replace({np.nan: 0})
+        campos = {
+            'cobrador': cobrador,
+            'pago': monto,
+            'estado': registro,
+            'medio de pago': medio_pago,
+            'fecha_cobro': fecha_cobro,
+            'obs': obs
+        }
+        
+        for campo, valor in campos.items():
+            save(cobranza['id'], campo, valor)
+            time.sleep(1)
 
-        actualizacion = [
-            ('cobrador', cobrador),
-            ('pago', float(cobranza.get('pago', 0)) + monto),
-            ('estado', registro),
-            ('medio de pago', medio_pago),
-            ('fecha_cobro', fecha_cobro),
-            ('monto', nuevo_monto),
-            ('obs', obs)
-        ]
-
-        for col, dato in actualizacion:
-            save(cobranza['id'], col, dato)
-
-        ingreso(cobranza, registro)  # Asegúrate de que esta función está definida
-        st.session_state['cobranzas'] = load()
+        st.session_state['cobranzas'] = load()  
         st.rerun()
+
 
 
 def registrar_moroso(cobranza):
