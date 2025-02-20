@@ -143,14 +143,14 @@ def crear_cobranzas(data):
         interes=montos[i][0]
         amortizacion=montos[i][1]
         nueva_cobranza=[
-            int(st.session_state['cobranzas']['id'].max())+i+1,
+            str(int(st.session_state['cobranzas']['id'].max())+i+1),
             id,
             entregado,
             TNM,
             cantidad_cuotas,
             vendedor,
             nombre,
-            i,
+            i+1,
             monto_por_cuota,
             fecha,
             0,
@@ -161,7 +161,6 @@ def crear_cobranzas(data):
             amortizacion,
             iva,
             monto_por_cuota,
-            0,
             0,
             'Pendiente de pago',
             '',

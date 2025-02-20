@@ -58,6 +58,8 @@ def delete_data(id_value, sheet_id, column_index=1):
         return f"Error al eliminar datos: {e}"
 
 
+
+
 def save_data(id_value, column_name, new_value, sheet_id):
     worksheet = get_worksheet(sheet_id)
     col_labels = worksheet.row_values(1)

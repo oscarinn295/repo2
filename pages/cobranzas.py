@@ -130,13 +130,17 @@ def registrar(cobranza):
 
     pago = st.selectbox(
         'Monto',
-        ['Pago', f"Pago total: {cobranza['monto_recalculado_mora']}", 'Otro monto'],
+        ['Pago', f"Pago con mora: {cobranza['monto_recalculado_mora']}",f'Pago sin mora{cobranza['monto']}', 'Otro monto'],
         index=0,
         key=f"pago{cobranza['id']}"
     )
 
-    if 'Pago total' in pago:
+    if f"Pago con mora: {cobranza['monto_recalculado_mora']}" in pago:
         monto = cobranza['monto_recalculado_mora']
+        registro = 'Pago total'
+    elif f'Pago sin mora{cobranza['monto']}' in pago:
+        monto=cobranza['monto']
+        registro = 'Pago sin mora'
     elif 'Otro monto' in pago:
         monto = st.number_input(
             "Monto",
@@ -153,13 +157,8 @@ def registrar(cobranza):
     monto = float(monto)  # Asegurar conversión correcta
     nuevo_monto = max(0, float(cobranza.get('monto', 0)) - monto)
 
-    if nuevo_monto == 0:
-        registro = 'Pago total'
-    elif monto > 0:
+    if monto < cobranza['monto']:
         registro = 'Pago parcial'
-    else:
-        registro = 'Sin pago'
-
     medio_pago = st.selectbox(
         'Medio de pago', 
         ['Seleccione una opción', 'Efectivo', 'Transferencia', 'Mixto'], 
@@ -177,32 +176,25 @@ def registrar(cobranza):
         submit_button = st.form_submit_button("Registrar")
 
     if submit_button:
-        if medio_pago == 'Seleccione una opción' or monto <= 0 or fecha_cobro=='Seleccionar fecha':
-            st.warning('Faltan datos o el monto no es válido.')
-            return
-        else:
-            cobranza['vencimiento'] = str(cobranza['vencimiento'])
-            cobranza = cobranza.replace({np.nan: 0})
+        cobranza['vencimiento'] = str(cobranza['vencimiento'])
+        cobranza = cobranza.replace({np.nan: 0})
 
-            actualizacion = [
-                ('cobrador', cobrador),
-                ('pago', float(cobranza.get('pago', 0)) + monto),
-                ('redondeo', 0.0),
-                ('estado', registro),
-                ('medio de pago', medio_pago),
-                ('comprobante', comprobante),
-                ('fecha_cobro', fecha_cobro),
-                ('monto', nuevo_monto),
-                ('obs', obs)
-            ]
+        actualizacion = [
+            ('cobrador', cobrador),
+            ('pago', float(cobranza.get('pago', 0)) + monto),
+            ('estado', registro),
+            ('medio de pago', medio_pago),
+            ('fecha_cobro', fecha_cobro),
+            ('monto', nuevo_monto),
+            ('obs', obs)
+        ]
 
-            for col, dato in actualizacion:
-                if pd.notna(dato):  # Evitar guardar NaN
-                    save(cobranza['id'], col, dato)
+        for col, dato in actualizacion:
+            save(cobranza['id'], col, dato)
 
-            ingreso(cobranza, registro)  # Asegúrate de que esta función está definida
-            st.session_state['cobranzas'] = load()
-            st.rerun()
+        ingreso(cobranza, registro)  # Asegúrate de que esta función está definida
+        st.session_state['cobranzas'] = load()
+        st.rerun()
 
 
 def registrar_moroso(cobranza):
@@ -316,8 +308,6 @@ def display_table():
                 with col6:
                     if not pd.isna(row['pago']):
                         st.write(f"**Monto Pago**: ${float(row['pago']):,.2f}")
-                        st.write(f"**Redondeo**: ${float(row['redondeo']):,.2f}")
-
                 with col7:
                     st.write(f"**Estado**: \n", unsafe_allow_html=True)
                     st.write(f"{row['estado']}")
