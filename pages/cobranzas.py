@@ -75,8 +75,7 @@ with col6:
         column_order = ['id','prestamo_id','entregado','tnm','cantidad de cuotas',
                         "vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
                         "dias_mora", "mora",'capital','cuota pura','intereses',
-                        'amortizacion','iva','monto_recalculado_mora','pago',
-                        'redondeo','estado','medio de pago','cobrador','fecha_cobro' ]
+                        'amortizacion','iva','monto_recalculado_mora','pago','estado','medio de pago','cobrador','fecha_cobro' ]
         cobb = cobb[column_order]
 
         # Reemplazar NaN y NaT en todas las columnas
