@@ -65,32 +65,43 @@ with col6:
             st.error("❌ Error: No hay datos válidos para guardar en Google Sheets.")
         st.rerun()
 
-        
-    if st.button('calcular regargos por mora'):
-        # Aplicar la función correctamente y asignar los valores de vuelta
-        cobb=login.load_data(st.secrets['urls']['cobranzas'])
-        cobb[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobb.apply(meta_ediciones.calcular_recargo, axis=1)
-
-        # Asegurar que las columnas estén en el orden correcto
-        column_order = ['id','prestamo_id','entregado','tnm','cantidad de cuotas',
-                        "vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
-                        "dias_mora", "mora",'capital','cuota pura','intereses',
-                        'amortizacion','iva','monto_recalculado_mora','pago','estado','medio de pago','cobrador','fecha_cobro' ]
-        cobb = cobb[column_order]
-
-        # Reemplazar NaN y NaT en todas las columnas
-        cobb = cobb.replace({np.nan: "", pd.NaT: ""})
-        cobb.loc[pd.to_datetime(cobb['vencimiento']).dt.date>dt.date.today(),'estado']='Pendiente de pago'
-        cobb['vencimiento'] = pd.to_datetime(cobb['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
-        # Solución específica para la columna 'fecha_cobro'
-        cobb['fecha_cobro'] = pd.to_datetime(cobb['fecha_cobro'], errors='coerce')
-        cobb['fecha_cobro'] = cobb['fecha_cobro'].dt.strftime('%d-%m-%Y').fillna("")
-        cobb['fecha_cobro'] = cobb['fecha_cobro'].replace("NaT", "")
-        # Convertir a lista de listas para subir a Google Sheets
-        data_to_upload = [cobb.columns.tolist()] + cobb.astype(str).values.tolist()
-        # Sobrescribir en Google Sheets
-        sheet_id = st.secrets['ids']['cobranzas']
-        login.overwrite_sheet(data_to_upload, sheet_id)
+hoy_date = dt.date.today()
+if st.button('calcular recargos por mora'):
+    # Recargar datos (en caso de que hayan cambiado)
+    cobb = login.load_data(st.secrets['urls']['cobranzas'])
+    
+    # Asegurar que el campo de ID se trate como cadena y convertir la fecha de vencimiento
+    cobb['prestamo_id'] = cobb['prestamo_id'].astype(str)
+    cobb['vencimiento'] = pd.to_datetime(cobb['vencimiento'], format='%d-%m-%Y', errors='coerce')
+    
+    # Actualizar el estado de las cobranzas:
+    # • Si el vencimiento es en el futuro, dejar "Pendiente de pago"
+    # • Si ya pasó y aún está en "Pendiente de pago", cambiar a "En mora"
+    cobb.loc[cobb['vencimiento'].dt.date > hoy_date, 'estado'] = 'Pendiente de pago'
+    cobb.loc[(cobb['vencimiento'].dt.date <= hoy_date) & (cobb['estado'] == 'Pendiente de pago'), 'estado'] = 'En mora'
+    
+    # Aplicar la función de recálculo solo a aquellas cobranzas que estén en "En mora"
+    cobb[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobb.apply(meta_ediciones.calcular_recargo, axis=1)
+    
+    # Ordenar las columnas según tu formato requerido
+    column_order = ['id', 'prestamo_id', 'entregado', 'tnm', 'cantidad de cuotas',
+                    "vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
+                    "dias_mora", "mora", 'capital', 'cuota pura', 'intereses',
+                    'amortizacion', 'iva', 'monto_recalculado_mora', 'pago', 'estado', 
+                    'medio de pago', 'cobrador', 'fecha_cobro']
+    cobb = cobb[column_order]
+    
+    # Reemplazar NaN y valores nulos
+    cobb = cobb.replace({np.nan: "", pd.NaT: ""})
+    cobb['vencimiento'] = pd.to_datetime(cobb['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y')
+    
+    cobb['fecha_cobro'] = pd.to_datetime(cobb['fecha_cobro'], errors='coerce')
+    cobb['fecha_cobro'] = cobb['fecha_cobro'].dt.strftime('%d-%m-%Y').fillna("")
+    cobb['fecha_cobro'] = cobb['fecha_cobro'].replace("NaT", "")
+    
+    data_to_upload = [cobb.columns.tolist()] + cobb.astype(str).values.tolist()
+    sheet_id = st.secrets['ids']['cobranzas']
+    login.overwrite_sheet(data_to_upload, sheet_id)
 
 def ingreso(cobranza,descripcion):
     st.session_state["mov"]=login.load_data(st.secrets['urls']['flujo_caja'])
