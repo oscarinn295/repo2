@@ -29,7 +29,29 @@ login.generarLogin()
 
 st.session_state['prestamos']=load()
 
+def save_data(id_value, column_name, new_value, sheet_id):
+    worksheet = login.get_worksheet(sheet_id)
+    col_labels = worksheet.row_values(1)  # Nombres de las columnas (primera fila)
 
+    # Verifica si la columna existe
+    if column_name not in col_labels:
+        st.error(f"Columna '{column_name}' no encontrada en la hoja.")
+        return
+
+    col_index = col_labels.index(column_name) + 1  # Índice de la columna a modificar
+    id_column_values = worksheet.col_values(1)  # Se asume que la columna "ID" es la primera
+
+    # Buscar la fila con el ID específico
+    try:
+        row_index = id_column_values.index(str(id_value)) + 1  # +1 porque las filas en Google Sheets empiezan en 1
+        st.write(f"Actualizando fila {row_index}, columna {col_index} con valor {new_value}")
+        worksheet.update_cell(row_index, col_index, new_value)
+    except ValueError:
+        st.error(f"ID '{id_value}' no encontrado en la columna ID.")
+
+
+def save2(id,col,val):
+    save_data(int(id),col,val,idc)
 
 
 
@@ -461,7 +483,8 @@ def display_table():
                         )
                         # Agregar cambios si el estado cambió
                         if new_estado != row["estado"]:
-                            save(row['id'],'estado',new_estado)
+                            save2(row['id'],'estado',new_estado)
+                            st.session_state['prestamos']=load()
                             st.rerun()
                         #with st.popover(f'✏️ Editar'):
                             #editar(row)
