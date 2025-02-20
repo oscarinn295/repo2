@@ -33,3 +33,5 @@ hay unos floats
 
 es muy importante que se vea el producto asociado si es que existe
 
+fecha en la creacion de cliente en formato d-m-y
+que en el campo de nombre de cliente diga apellido y nombre

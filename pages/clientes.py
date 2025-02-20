@@ -134,8 +134,8 @@ def crear():
         
         with col1:
             dni = st.text_input("DNI")
-            nombre = st.text_input("Nombre")
-            fecha_nac = st.date_input("Fecha")
+            nombre = st.text_input("Apellido y Nombre")
+            fecha_nac = st.date_input("Fecha",format="DD/MM/YYYY")
             vendedor = st.selectbox('Vendedor', vendedores, key='vendedores')
         
         with col2:
