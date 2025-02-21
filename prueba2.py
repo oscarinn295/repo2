@@ -1,107 +1,86 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import gspread
-from google.oauth2.service_account import Credentials
-from datetime import date, datetime
+import streamlit.components.v1 as components
+import math
 
-# Ocultar el botón de Deploy con CSS
-st.markdown(
-    """
-    <style>
-    #MainMenu {visibility: hidden;}
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+def redondear_mil_condicional(valor):
+    """Redondea el valor al múltiplo de 1000 más cercano."""
+    redondeo = 1000 - (valor % 1000) if valor % 1000 != 0 else 0
+    return valor + redondeo, redondeo
 
-# Autenticación con Google Sheets
-def authenticate():
-    if "gspread_client" not in st.session_state:
-        SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-        creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=SCOPES)
-        st.session_state["gspread_client"] = gspread.authorize(creds)
+def crear():
+    col1, col2 = st.columns(2)
+    IVA = 0.21
 
-def get_worksheet(sheet_id):
-    authenticate()
-    client = st.session_state["gspread_client"]
-    return client.open_by_key(sheet_id).worksheet("Sheet1")
+    with col1:
+        cantidad_cuotas = st.number_input("Cantidad de Cuotas*", min_value=1, step=1, key='cant')
 
-def overwrite_sheet(data, sheet_id):
-    worksheet = get_worksheet(sheet_id)
-    worksheet.clear()
-    worksheet.update("A1", data)
+        # Campo de capital con formateo en vivo (JS)
+        st.markdown("#### Capital:")
+        capital_html = """
+        <input type="text" id="capitalInput" placeholder="$0.00" style="width: 100%; font-size: 20px; text-align: right; padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+        <script>
+            document.getElementById("capitalInput").addEventListener("input", function(e) {
+                let value = e.target.value.replace(/[^0-9.]/g, "").replace(/,/g, "");
+                if (value) {
+                    let parts = value.split(".");
+                    parts[0] = parseInt(parts[0]).toLocaleString("en-US");
+                    e.target.value = "$" + parts.join(".");
+                }
+            });
+        </script>
+        """
+        components.html(capital_html, height=50)
 
-# Cargar datos
-def load_data(url):
-    return pd.read_excel(url, engine='openpyxl')
+    with col2:
+        tipo = st.selectbox('Tasa nominal (%):', ['mensual', 'quincenal', 'semanal', 'otra tasa'])
+        if tipo == 'mensual':
+            TNM = 18
+        elif tipo == 'quincenal':
+            TNM = 14
+        elif tipo == 'semanal':
+            TNM = 6.5
+        else:
+            TNM = st.number_input("Tasa nominal mensual (%):", min_value=1.0, step=0.01, format="%.2f")
 
-prestamos = load_data(st.secrets['urls']['prestamos'])
-cobranzas = load_data(st.secrets['urls']['cobranzas_prueba'])
+        if tipo in ['mensual', 'quincenal', 'semanal']:
+            st.write(f"Tasa nominal (%): {TNM}")
 
-# Preparar datos
-prestamos['id'] = prestamos['id'].astype(str)
-cobranzas['prestamo_id'] = cobranzas['prestamo_id'].astype(str)
-cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], format='%d-%m-%Y', errors='coerce')
+        tasa_decimal = TNM / 100
 
-hoy_date = date.today()
+        # **IMPORTANTE:** Aquí necesitarás convertir el valor del campo `capitalInput` a número para los cálculos.
+        # Puedes hacerlo con un `st.text_input` oculto o usar otro método para capturarlo en Python.
 
-# Actualizar estado de cobranzas
-cobranzas['estado'] = np.where(
-    cobranzas['vencimiento'].dt.date >= hoy_date, 'Pendiente de pago',
-    np.where((cobranzas['estado'] == 'Pendiente de pago'), 'En mora', cobranzas['estado'])
-)
+        cuota_pura = 0  # ← Deberías calcular esto después de obtener `capital`
+        iva = cuota_pura * IVA
+        interes = 0  # ← Depende de `capital`
+        amortizacion = cuota_pura - interes
 
-# Calcular recargos por mora
-def calcular_recargo(cobranza):
-    if cobranza['estado'] in ['Pago total', 'Pendiente de pago']:
-        return cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']
-    
-    monto = pd.to_numeric(cobranza['monto'], errors='coerce') or 0.0
-    prestamo = prestamos[prestamos['id'] == cobranza['prestamo_id']]
-    
-    if prestamo.empty or pd.isna(cobranza['vencimiento']):
-        return cobranza['dias_mora'], cobranza['mora'], cobranza['monto_recalculado_mora']
-    
-    tipo_prestamo = {
-        'Mensual: 1-10': 500, 'Mensual: 10-20': 500, 'Mensual: 20-30': 500,
-        'Quincenal': 400, 'Semanal: lunes': 300, 'Semanal: martes': 300,
-        'Semanal: miercoles': 300, 'Semanal: jueves': 300, 'Semanal: viernes': 300,
-        'Semanal: sabado': 300, 'indef': 0
-    }
-    
-    dias_mora = max((datetime.today() - cobranza['vencimiento']).days, 0)
-    tipo = prestamo['vence'].iloc[0]
-    interes = tipo_prestamo.get(tipo, 0)
-    
-    mora = interes * dias_mora
-    monto_recalculado = monto + mora
-    
-    return dias_mora, mora, monto_recalculado
+        monto = 0.0
+        if st.checkbox('Calcular monto por cuota'):
+            monto_final = interes + amortizacion + iva
+            if cantidad_cuotas == 1:
+                monto_final, redondeo = redondear_mil_condicional(monto_final)
+            elif cantidad_cuotas == 2:
+                monto_final, redondeo = redondear_mil_condicional(monto_final / 2)
+            else:
+                monto_final, redondeo = redondear_mil_condicional(interes + amortizacion + iva)
+            redondeo = math.trunc(redondeo)
+            st.write(f'Monto Fijo por Cuota: ${monto_final:,.2f}, Redondeo: ${redondeo:,.2f}')
+        else:
+            st.markdown("#### Monto Fijo por Cuota:")
+            monto_html = """
+            <input type="text" id="montoInput" placeholder="$0.00" style="width: 100%; font-size: 20px; text-align: right; padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+            <script>
+                document.getElementById("montoInput").addEventListener("input", function(e) {
+                    let value = e.target.value.replace(/[^0-9.]/g, "").replace(/,/g, "");
+                    if (value) {
+                        let parts = value.split(".");
+                        parts[0] = parseInt(parts[0]).toLocaleString("en-US");
+                        e.target.value = "$" + parts.join(".");
+                    }
+                });
+            </script>
+            """
+            components.html(monto_html, height=50)
 
-# Botón para calcular recargos
-if st.button('Calcular recargos por mora'):
-    cobranzas[['dias_mora', 'mora', 'monto_recalculado_mora']] = cobranzas.apply(
-        calcular_recargo, axis=1, result_type='expand'
-    )
-    
-    column_order = [
-        'id', 'prestamo_id', 'entregado', 'tnm', 'cantidad de cuotas',
-        "vendedor", "nombre", "n_cuota", "monto", "vencimiento", 
-        "dias_mora", "mora", 'capital', 'cuota pura', 'intereses',
-        'amortizacion', 'iva', 'monto_recalculado_mora', 'pago', 'estado', 
-        'medio de pago', 'cobrador', 'fecha_cobro'
-    ]
-    
-    cobranzas = cobranzas[column_order].replace({np.nan: "", pd.NaT: ""})
-    cobranzas['vencimiento'] = pd.to_datetime(cobranzas['vencimiento'], errors='coerce').dt.strftime('%d-%m-%Y').fillna("")
-    cobranzas['fecha_cobro'] = pd.to_datetime(cobranzas['fecha_cobro'], errors='coerce').dt.strftime('%d-%m-%Y').fillna("")
-    
-    data_to_upload = [cobranzas.columns.tolist()] + cobranzas.astype(str).values.tolist()
-    sheet_id = st.secrets['ids']['cobranzas']
-    
-    try:
-        overwrite_sheet(data_to_upload, sheet_id)
-        st.success("Datos actualizados correctamente.")
-    except Exception as e:
-        st.error(f"Error al subir los datos: {e}")
+crear()

@@ -1,5 +1,6 @@
 import streamlit as st
 import login
+import datetime as dt
 if 'usuario' not in st.session_state:
     st.switch_page('inicio.py')
 # Llamar al módulo de login
@@ -103,10 +104,14 @@ with st.container(border=True):
     with col3:
         st.dataframe(df_morosos_vendedor)
 
-from datetime import datetime
+#amortizacion por dia
+pagados_hoy=cobranzas[cobranzas['fecha_cobro'].strftime('%d-%m-%Y')==dt.date.today().strftime('%d-%m-%Y')]
+st.dataframe(pagados_hoy)
+
+
 
 # Obtener la fecha actual
-fecha_actual = datetime.now()
+fecha_actual = dt.datetime.now()
 
 # Extraer mes y año
 mes = fecha_actual.month
@@ -150,5 +155,3 @@ repo_mensual=st.session_state['repo_mensual']
 with st.expander('Ver reporte Mensual'):
     st.subheader("Reporte Mensual")
     st.dataframe(repo_mensual)
-
-

@@ -157,28 +157,40 @@ def registrar(cobranza):
         index=0,
         key=f"pago{cobranza['id']}"
     )
-
-    monto = (
-        cobranza['monto_recalculado_mora']
-        if pago == "Pago total"
-        else st.number_input(
-            "Monto",
-            min_value=0.0,
-            value=0.0,
-            step=1000.0,
-            key=f"monto_{cobranza['id']}"
+    if f"init{cobranza['id']}" not in st.session_state:
+        monto=0
+        st.session_state[f"init{cobranza['id']}"]=0
+    col1,col2=st.columns(2)
+    def show1():
+        st.session_state[f"init{cobranza['id']}"]=1
+    with col1:
+        monto = (
+            cobranza['monto_recalculado_mora']
+            if pago == "Pago total"
+            else st.number_input(
+                "Monto",
+                min_value=0.0,
+                value=0.0,
+                step=1000.0,
+                key=f"monto_{cobranza['id']}"
+                , format="%.2f",on_change=show1
+            )
+            if pago == 'Otro monto'
+            else 0.0
         )
-        if pago == 'Otro monto'
-        else 0.0
-    )
+    with col2:
+        if st.session_state[f"init{cobranza['id']}"]==1:
+            st.write(f"${monto:,.2f}")
+        medio_pago = st.selectbox(
+            'Medio de pago', 
+            ['Seleccione una opción', 'Efectivo', 'Transferencia', 'Mixto'], 
+            key=f"medio_{cobranza['id']}"
+        )
+    if pago=="Pago total":
+        st.write(f'Monto a cobrar: {cobranza['monto_recalculado_mora']:,.2f}')
 
     registro = 'Pago total' if monto >= cobranza['monto_recalculado_mora'] else 'Pago parcial'
 
-    medio_pago = st.selectbox(
-        'Medio de pago', 
-        ['Seleccione una opción', 'Efectivo', 'Transferencia', 'Mixto'], 
-        key=f"medio_{cobranza['id']}"
-    )
 
     with st.form(f"registrar_pago{cobranza['id']}"):
         cobrador = st.selectbox('Cobrador', vendedores, key=f"cobradores_{cobranza['id']}")

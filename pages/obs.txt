@@ -4,34 +4,13 @@ comisiones:
     añadir sitema de comisiones compartidas
     se comisiona por venta y por cobranzas
     las comisiones por ventas no tienen piso
-revisar si es que funciona o no
-si saco un prestamo semanal se paga el mismo dia de la semana que se registra
-si saco un prestamo quincenal se paga de acá a 2 semanas
 
-mensual: 10, 20 y 30 a eleccion del cliente
-    si el dia del registro es antes del vencimiento se paga ese mismo mes
-    solo en casos excepcionales se para el mes siguiente
-
-si pasó la fecha de cobranza y no se actualizó llevar a un apartado de pendientes de actualización
-
-en la vista de cobranzas desglozar que signiifica cada cantidad que aporta al monto a pagar por cuota. amortización
 quieren ver cuanto juntaron de amortización e intereses por mes
 tambien quiere una planilla de gastos
-ojo con el historial, le estan haciendo mucho incapié, preparar plantillas de mensaje completas para cada tipo de movimiento
-
 
 
 fijarse con lo de registrar las cobranzas, dejar un saldo a favor si se paga de mas y transferirlo, 
 
 añadir el estado de irregular a las cobranzas y desarrollar un nuevo sistema para morosos
-añadir boton de ver detalles en prestamos
 
-corregir todos los formatos de fechas
-empezar la cobranza por la cuota 1 porque anota desde 0
-
-hay unos floats
-
-es muy importante que se vea el producto asociado si es que existe
-
-fecha en la creacion de cliente en formato d-m-y
-que en el campo de nombre de cliente diga apellido y nombre
+hacer automatico el recargo por mora

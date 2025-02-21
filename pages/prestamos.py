@@ -264,11 +264,18 @@ def redondear_mil_condicional(numero, umbral=50):
 def crear(): 
     col1,col2=st.columns(2)
     IVA=0.21
+    if "init" not in st.session_state:
+        capital=0
+        st.session_state["init"]=0
+    def show1():
+        st.session_state["init"]=1
     with col1:
         cantidad_cuotas = st.number_input("Cantidad de Cuotas*",
                                                     min_value=1,
                                                     step=1,key='cant')
-        capital = st.number_input("Capital*", min_value=0.0, step=1000.0,key='capital')
+        capital = st.number_input("Capital:", min_value=0.0,step=1000.0, format="%.2f",on_change=show1)
+        if st.session_state['init']==1:
+            st.write(f"${capital:,.2f}")
     with col2:
         tipo=st.selectbox('Tasa nominal (%):',['mensual','quincenal','semanal','otra tasa'])
         if tipo=='mensual':
@@ -296,9 +303,9 @@ def crear():
             else:
                 monto_final,redondeo=redondear_mil_condicional(interes+amortizacion+iva)
             redondeo=math.trunc(redondeo)
-            st.write(f'Monto Fijo por Cuota:{monto_final}, Redondeo: {redondeo}')
+            st.write(f'Monto Fijo por Cuota: ${monto_final:,.2f}, Redondeo: ${redondeo:,.2f}')
         else:
-            monto_final=st.number_input('Monto Fijo por Cuota',min_value=0.0, step=1000.0,key='monto',value=monto)
+            monto_final=st.number_input('Monto Fijo por Cuota',min_value=0.0, step=1000.0,key='monto',value=monto, format="%.2f")
     with st.form('crear_prestamo'):
         fecha =  date.today()
         col1, col2 = st.columns(2)
@@ -453,6 +460,15 @@ def display_table():
     df_paginado = df.iloc[inicio:fin]
     if not df.empty:
         for idx, row in df_paginado.iterrows():
+            if row['fecha']==str:
+                try:
+                    row['fecha']=dt.strftime(row['fecha'],'%Y-%m-%d')
+                    row['fecha']=row['fecha'].strptime('%d-%m-%Y')
+                except:
+                    pass
+            else:
+                row['fecha']=row['fecha'].strftime('%d-%m-%Y')
+
             with st.container(border=True):
                 col1, col2, col3,col4 = st.columns(4)
                 with col1:

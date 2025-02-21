@@ -234,3 +234,5 @@ def historial(old_values, new_values):
     # Agregar ambas filas a la hoja
     worksheet.append_row(row_old)
     worksheet.append_row(row_new)
+def display_cobranzas():
+    pass
